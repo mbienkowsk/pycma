@@ -987,17 +987,6 @@ class CMAEvolutionStrategy(interfaces.OOOptimizer):
         else:
             self.integer_centering = _pass  # do nothing by default
 
-        if 11 < 3 and len(opts['integer_variables']):
-            try:
-                from . import integer
-                s = utils.format_message(
-                    "Option 'integer_variables' is discouraged. "
-                    "Use class `cma.integer.CMAIntMixed` or function "
-                    "`cma.integer.fmin_int` instead.")
-                warnings.warn(s, category=DeprecationWarning)  # TODO: doesn't show up
-            except ImportError:
-                pass
-
         # initialization of state variables
         self.countiter = 0
         self._isotropic_mean_shift_iteration = -1
@@ -1038,10 +1027,6 @@ class CMAEvolutionStrategy(interfaces.OOOptimizer):
                                                       self.sp.cmu)
         else:
             stds = eval_vector(self.opts['CMA_teststds'], opts, N)
-            if 11 < 3:
-                if hasattr(self.opts['vv'], '__getitem__') and \
-                        'sweep_ccov' in self.opts['vv']:
-                    self.opts['CMA_const_trace'] = True
             if self.opts['CMA_sampler'] is None:
                 self.sm = sampler.GaussFullSampler(stds * np.ones(N),
                     lazy_update_gap=(
@@ -1468,12 +1453,6 @@ class CMAEvolutionStrategy(interfaces.OOOptimizer):
                     pop_geno[index_for_gradient] = xmean - self.sigma \
                                 * (self.N / q)**0.5 \
                                 * (self.sigma_vec * np.dot(self.sm.B, self.sm.D * v))
-                    if 11 < 3 and self.opts['vv']:
-                        # gradient direction
-                        q = sum((np.dot(self.sm.B.T, self.sigma_vec**-1 * grad_at_mean) / self.sm.D)**2)
-                        pop_geno[index_for_gradient] = xmean - self.sigma \
-                                        * (self.N / q)**0.5 * grad_at_mean \
-                            if q else xmean
                 else:
                     pop_geno[index_for_gradient] = xmean
                     utils.print_warning('gradient zero observed',
@@ -1483,13 +1462,6 @@ class CMAEvolutionStrategy(interfaces.OOOptimizer):
                 pop_pheno[index_for_gradient] = self.gp.pheno(
                     pop_geno[index_for_gradient], copy=True,
                     into_bounds=self.boundary_handler.repair)
-                if 11 < 3:
-                    print("x/m", pop_pheno[index_for_gradient] / self.mean)
-                    print("  x-m=",
-                          pop_pheno[index_for_gradient] - self.mean)
-                    print("    g=", grad_at_mean)
-                    print("      (x-m-g)/||g||=", (pop_pheno[index_for_gradient] - self.mean - grad_at_mean) / sum(grad_at_mean**2)**0.5
-                          )
             except AttributeError:
                 warnings.warn("Gradient injection failed presumably due\n"
                               "to missing attribute ``self.sm.B or self.sm.D``")
@@ -1556,15 +1528,6 @@ class CMAEvolutionStrategy(interfaces.OOOptimizer):
                     # noise handling before calling tell
                 except KeyError:
                     pass
-
-        if 11 < 3:
-            if self.opts['CMA_AII']:
-                if self.countiter == 0:
-                    # self.aii = AII(self.x0, self.sigma0)
-                    pass
-                self._flgtelldone = False
-                pop = self.aii.ask(number)
-                return pop
 
         sigma = sigma_fac * self.sigma
 
@@ -1891,17 +1854,6 @@ class CMAEvolutionStrategy(interfaces.OOOptimizer):
 
                 length_normalizer = 1
                 # zzzzzzzzzzzzzzzzzzzzzzzzz
-                if 11 < 3:
-                    # for some unclear reason, this normalization does not work as expected: the step-size
-                    # becomes sometimes too large and overall the mean might diverge. Is the reason that
-                    # we observe random fluctuations, because the length is not selection relevant?
-                    # However sigma-adaptation should mainly work on the correlation, not the length?
-                    # Or is the reason the deviation of the direction introduced by using the original
-                    # length, which also can effect the measured correlation?
-                    # Update: if the length of z in CSA is clipped at chiN+1, it works, but only sometimes?
-                    length_normalizer = self.N**0.5 / self.mahalanobis_norm(x - xmean)  # self.const.chiN < N**0.5, the constant here is irrelevant (absorbed by kappa)
-                    # print(self.N**0.5 / self.mahalanobis_norm(x - xmean))
-                    # self.more_to_write += [length_normalizer * 1e-3, length_normalizer * self.mahalanobis_norm(x - xmean) * 1e2]
 
                 f = func(x, *args) if kappa == 1 else \
                     func(xmean + kappa * length_normalizer * (x - xmean),
@@ -2143,9 +2095,6 @@ class CMAEvolutionStrategy(interfaces.OOOptimizer):
         # ## prepare
         N = self.N
         sp = self.sp
-        if 11 < 3 and lam != sp.popsize:  # turned off, because mu should stay constant, still not desastrous
-            utils.print_warning('population size has changed, recomputing parameters')
-            self.sp.set(self.opts, lam)  # not really tested
         if 1 < 3 and (lam > sp.popsize + 2 or lam < sp.popsize - 2 or (
             lam < sp.popsize and lam < 5)):  # see above
             m = "The number of solutions passed to `tell` should"
@@ -2306,21 +2255,9 @@ class CMAEvolutionStrategy(interfaces.OOOptimizer):
         # replaced by repair_geno?
         # simple test case injecting self.mean:
         # self.mean = 1e-4 * self.sigma * np.random.randn(N)
-        if 11 < 3 and self.opts['vv'] and check_points:  # CAVEAT: check_points might be an index-list
-            cmean = self.sp.cmean / min(1, ((self.opts['vv'] * N)**0.5 + 2) / (# abuse of cmean
-                (self.sp.weights.mueff**0.5 / self.sp.cmean) *
-                self.mahalanobis_norm(self.mean - mold)))
-        else:
-            cmean = self.sp.cmean
+        cmean = self.sp.cmean
 
         # zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz
-        if 11 < 3:
-            self.more_to_write += [sum(self.mean**2)]
-        if 11 < 3:  # plot length of mean - mold
-            self.more_to_write += [self.sp.weights.mueff**0.5 *
-                sum(((1. / self.D) * np.dot(self.B.T, self.mean - mold))**2)**0.5 /
-                       self.sigma / N**0.5 / cmean]
-        ### line 2799
 
         # get learning rate constants
         cc = sp.cc
@@ -2336,26 +2273,6 @@ class CMAEvolutionStrategy(interfaces.OOOptimizer):
         # hsig() calls _update_ps
         hsig = self.adapt_sigma.hsig(self)
 
-        if 11 < 3:
-            # hsig = 1
-            # sp.cc = 4 / (N + 4)
-            # sp.cs = 4 / (N + 4)
-            # sp.cc = 1
-            # sp.damps = 2  #
-            # sp.CMA_on = False
-            # c1 = 0  # 2 / ((N + 1.3)**2 + 0 * sp.weights.mu) # 1 / N**2
-            # cmu = min([1 - c1, cmu])
-            if self.countiter == 1:
-                print('parameters modified')
-        # hsig = sum(self.ps**2) / self.N < 2 + 4./(N+1)
-
-        if 11 < 3:  # diagnostic data
-            # self.out['hsigcount'] += 1 - hsig
-            if not hsig:
-                self.hsiglist.append(self.countiter)
-        if 11 < 3:  # diagnostic message
-            if not hsig:
-                print(str(self.countiter) + ': hsig-stall')
         if not CMAOptions._hsig:  # for testing purpose
             hsig = 1  # TODO:
             #       put correction term, but how?
@@ -2440,9 +2357,6 @@ class CMAEvolutionStrategy(interfaces.OOOptimizer):
                         ws,
                         integer_indices=self.opts['integer_variables'])
                 # TODO: recompute population after adaptation (see transformations.DD.update)?
-                if 11 < 3:  # may be better but needs to be checked
-                    pop_zero_encoded = pop_zero / (self.sigma * self.sigma_vec.scaling)
-                    # pc is already good
                 pc = self.pc
                 if CMAOptions._ps_for_pc:  # experimental
                     try:
@@ -2486,22 +2400,6 @@ class CMAEvolutionStrategy(interfaces.OOOptimizer):
 
         self._stds_into_limits()
 
-        # setting limits not coordinate wise works quite badly, fixed in late 2022
-        if 11 < 3:  # old min/maxstd code
-            if any(self.sigma * self.sigma_vec.scaling * self.dC**0.5 <
-                        np.asarray(self.opts['minstd'])):
-                self.sigma = max(np.asarray(self.opts['minstd']) /
-                                    (self.sigma_vec * self.dC**0.5))
-                assert all(self.sigma * self.sigma_vec * self.dC**0.5 >=
-                        (1-1e-9) * np.asarray(self.opts['minstd']))
-            elif any(self.sigma * self.sigma_vec.scaling * self.dC**0.5 >
-                        np.asarray(self.opts['maxstd'])):
-                self.sigma = min(np.asarray(self.opts['maxstd']) /
-                                (self.sigma_vec * self.dC**0.5))
-        # g = self.countiter
-        # N = self.N
-        # mindx = eval(self.opts['mindx'])
-        #  if utils.is_str(self.opts['mindx']) else self.opts['mindx']
         if self.sigma * min(self.D) < self.opts['mindx']:  # TODO: sigma_vec is missing here
             self.sigma = self.opts['mindx'] / min(self.D)
 
@@ -2532,11 +2430,6 @@ class CMAEvolutionStrategy(interfaces.OOOptimizer):
         # move mean into "feasible preimage", leads to weird behavior on
         # 40-D tablet with bound 0.1, not quite explained (constant
         # dragging is problematic, but why doesn't it settle), still a bug?
-        if 11 < 3 and isinstance(self.boundary_handler, BoundTransform) \
-                and not self.boundary_handler.is_in_bounds(self.mean):
-            self.mean = array(self.boundary_handler.inverse(
-                self.boundary_handler.repair(self.mean, copy_if_changed=False),
-                    copy_if_changed=False), copy=False)
         if _new_injections:
             self.pop_injection_directions = self._prepare_injection_directions()
             if (self.opts['verbose'] > 4 and self.countiter < 3 and
@@ -2790,8 +2683,6 @@ class CMAEvolutionStrategy(interfaces.OOOptimizer):
                     x += mold
                 # print self.countiter, k, fac, self.mahalanobis_norm(pop[k] - mold)
                 # adapt also sigma: which are the trust-worthy/injected solutions?
-            elif 11 < 3:
-                return np.exp(np.tanh(((upper_length * fac)**2 / self.N - 1) / 2) / 2)
 
         return x
 
@@ -2972,9 +2863,6 @@ class CMAEvolutionStrategy(interfaces.OOOptimizer):
                 if self.C is not None:
                     self.D, self.B = self.opts['CMA_eigenmethod'](self.C)
                     self.D **= 0.5
-                elif 11 < 3:  # would retain consistency but fails
-                    self.B = None
-                    self.D = None
             if self.C is not None:
                 self.dC = np.diag(self.C)
 
@@ -3341,14 +3229,6 @@ class _CMAStopDict(dict):
             self.__init__()
             return self
 
-        if 11 < 3:  # options might have changed, so countiter ==
-            if es.countiter == self.lastiter:  # lastiter doesn't help
-                try:
-                    if es == self.es:
-                        return self
-                except:  # self.es not yet assigned
-                    pass
-
         self.lastiter = es.countiter
         self.es = es
 
@@ -3424,11 +3304,6 @@ class _CMAStopDict(dict):
             l = max(( 1.0 * opts['tolstagnation'] / 5. / 2, len(es.fit.histbest) / 10))
             # TODO: why max(..., len(histbest)/10) ???
             # TODO: the problem in the beginning is only with best ==> ???
-            if 11 < 3:  # print for debugging
-                print(es.countiter, (opts['tolstagnation'], es.countiter > N * (5 + 100 / es.popsize),
-                    len(es.fit.histbest) > 100,
-                    np.median(es.fit.histmedian[:l]) >= np.median(es.fit.histmedian[l:2 * l]),
-                    np.median(es.fit.histbest[:l]) >= np.median(es.fit.histbest[l:2 * l])))
             # equality should handle flat fitness
             if l <= es.countiter:
                 l = int(l)  # doesn't work for infinite l which can never happen anyways
@@ -3454,10 +3329,6 @@ class _CMAStopDict(dict):
                 pass
             # else: raise
 
-        if 11 < 3 and 2 * l < len(es.fit.histbest):  # TODO: this might go wrong, because the nb of written columns changes
-            tmp = (-np.median(es.fit.histmedian[:l]) + np.median(es.fit.histmedian[l:2 * l]),
-                   - np.median(es.fit.histbest[:l]) + np.median(es.fit.histbest[l:2 * l]))
-            es.more_to_write += [(10**t if t < 0 else t + 1) for t in tmp]  # the latter to get monotonicy
 
         if 1 < 3:
             # non-user defined, method specific
@@ -3497,20 +3368,6 @@ class _CMAStopDict(dict):
                         # max(es.fit.hist[:1 + int(opts['tolflatfitness'])]) == min(es.fit.hist[:1 + int(opts['tolflatfitness'])])
                        ):
                         self._addstop('tolflatfitness')
-                        if 11 < 3 and max(es.fit.fit) == min(es.fit.fit) == es.best.last.f:  # keep warning for historical reasons for the time being
-                            utils.print_warning(
-                                "flat fitness (f=%f, sigma=%.2e). "
-                                "For small sigma, this could indicate numerical convergence. \n"
-                                "Otherwise, please (re)consider how to compute the fitness more elaborately." %
-                                (es.fit.fit[0], es.sigma), iteration=es.countiter)
-            if 11 < 3:  # add stop condition, in case, replaced by above, subject to removal
-                self._addstop('flat fitness',  # message via stopdict
-                         len(es.fit.hist) > 9 and
-                         max(es.fit.hist) == min(es.fit.hist) and
-                              max(es.fit.fit) == min(es.fit.fit),
-                         "please (re)consider how to compute the fitness more elaborately if sigma=%.2e is large" % es.sigma)
-        if 11 < 3 and opts['vv'] == 321:
-            self._addstop('||xmean||^2<ftarget', sum(es.mean**2) <= opts['ftarget'])
 
         return self
 
@@ -4089,8 +3946,6 @@ def fmin(objective_function, x0, sigma0,
             elif sum(small_i) < bipop * max((1, sum(large_i))):
                 # An interweaved run with small population size
                 poptype = 'small'
-                if 11 < 3:  # not needed when compared to irun - runs_with_small
-                    restarts += 1  # A small restart doesn't count in the total
                 runs_with_small += 1  # _Before_ it's used in popsize_lastlarge
 
                 sigma_factor = 0.01**np.random.uniform()  # Local search
@@ -4176,14 +4031,6 @@ def fmin(objective_function, x0, sigma0,
             except AttributeError:
                 pass
 
-            if 11 < 3:
-                if es.countiter == 0 and es.opts['verb_log'] > 0 and \
-                        not es.opts['verb_append']:
-                   logger = CMADataLogger(es.opts['verb_filenameprefix']
-                                            ).register(es)
-                   logger.add()
-                es.writeOutput()  # initial values for sigma etc
-
             if noise_handler:
                 if isinstance(noise_handler, type):
                     noisehandler = noise_handler(es.N)
@@ -4214,12 +4061,6 @@ def fmin(objective_function, x0, sigma0,
                                              parallel_mode=parallel_objective)  # treats NaN with resampling if not parallel_mode
                     # TODO: check args and in case use args=(noisehandler.evaluations, )
 
-                    if 11 < 3 and opts['vv']:  # inject a solution
-                        # use option check_point = [0]
-                        if 0 * np.random.randn() >= 0:
-                            X[0] = 0 + opts['vv'] * es.sigma**0 * np.random.randn(es.N)
-                            fit[0] = objective_function(X[0], *args)
-                            # print fit[0]
                     if es.opts['verbose'] > 4:  # may be undesirable with dynamic fitness (e.g. Augmented Lagrangian)
                         if es.countiter < 2 or min(fit) <= es.best.last.f:
                             degrading_iterations_count = 0  # comes first to avoid code check complaint

@@ -47,10 +47,11 @@ use and modify it however you like).
 """
 from __future__ import division  # such that 1/2 != 0
 from __future__ import print_function  # available since 2.6, not needed
+
 ___author__ = "Nikolaus Hansen"
 __license__ = "public domain"
 
-from sys import stdout as _stdout # not strictly necessary
+from sys import stdout as _stdout  # not strictly necessary
 import warnings as _warnings
 from math import log, exp
 from random import normalvariate as random_normalvariate
@@ -63,17 +64,24 @@ try:
     from .recombination_weights import RecombinationWeights
 except (ImportError, ValueError):
     RecombinationWeights = None
-del division, print_function  #, absolute_import, unicode_literals, with_statement
+del division, print_function  # , absolute_import, unicode_literals, with_statement
 
-__version__ = '3.0.0'
-__author__ = 'Nikolaus Hansen'
-__docformat__ = 'reStructuredText'
+__version__ = "3.0.0"
+__author__ = "Nikolaus Hansen"
+__docformat__ = "reStructuredText"
 
 
-def fmin(objective_fct, xstart, sigma,
-         args=(),
-         maxfevals='1e3 * N**2', ftarget=None,
-         verb_disp=100, verb_log=1, verb_save=1000):
+def fmin(
+    objective_fct,
+    xstart,
+    sigma,
+    args=(),
+    maxfevals="1e3 * N**2",
+    ftarget=None,
+    verb_disp=100,
+    verb_log=1,
+    verb_save=1000,
+):
     """non-linear non-convex minimization procedure, a functional
     interface to CMA-ES.
 
@@ -153,7 +161,7 @@ def fmin(objective_fct, xstart, sigma,
     records data they are saved to disk as well.
 
     :See: `CMAES`, `OOOptimizer`.
-"""
+    """
     es = CMAES(xstart, sigma, maxfevals=maxfevals, ftarget=ftarget)
     if verb_log:  # prepare data logging
         es.logger = CMAESDataLogger(verb_log).add(es, force=True)
@@ -162,70 +170,91 @@ def fmin(objective_fct, xstart, sigma,
         fit = [objective_fct(x, *args) for x in X]  # evaluate candidates
         es.tell(X, fit)  # update distribution parameters
 
-    # that's it! The remainder is managing output behavior only.
+        # that's it! The remainder is managing output behavior only.
         es.disp(verb_disp)
         if verb_log:
             if es.counteval / es.params.lam % verb_log < 1:
                 es.logger.add(es)
-            if verb_save and (es.counteval / es.params.lam
-                              % (verb_save * verb_log) < 1):
+            if verb_save and (
+                es.counteval / es.params.lam % (verb_save * verb_log) < 1
+            ):
                 es.logger.save()
 
     if verb_disp:  # do not print by default to allow silent verbosity
         es.disp(1)
-        print('termination by', es.stop())
-        print('best f-value =', es.result[1])
-        print('solution =', es.result[0])
+        print("termination by", es.stop())
+        print("best f-value =", es.result[1])
+        print("solution =", es.result[0])
     if verb_log:
         es.logger.add(es, force=True)
         es.logger.save() if verb_save else None
-    return [es.best.x if es.best.f < objective_fct(es.xmean) else
-            es.xmean, es]
+    return [es.best.x if es.best.f < objective_fct(es.xmean) else es.xmean, es]
 
 
 class CMAESParameters(object):
-    """static "internal" parameter setting for `CMAES`
+    """static "internal" parameter setting for `CMAES`"""
 
-    """
-    default_popsize = '4 + int(3 * log(N))'
-    def __init__(self, N, popsize=None,
-                 RecombinationWeights=None):
+    default_popsize = "4 + int(3 * log(N))"
+
+    def __init__(self, N, popsize=None, RecombinationWeights=None):
         """set static, fixed "strategy" parameters once and for all.
 
         Input parameter ``RecombinationWeights`` may be set to the class
         `RecombinationWeights`.
         """
         self.dimension = N
-        self.chiN = N**0.5 * (1 - 1. / (4 * N) + 1. / (21 * N**2))
+        self.chiN = N**0.5 * (1 - 1.0 / (4 * N) + 1.0 / (21 * N**2))
 
         # Strategy parameter setting: Selection
-        self.lam = eval(safe_str(popsize if popsize else
-                                 CMAESParameters.default_popsize,
-                                 {'int': 'int', 'log': 'log', 'N': N}))
-        self.mu = int(self.lam / 2)  # number of parents/points/solutions for recombination
+        self.lam = eval(
+            safe_str(
+                popsize if popsize else CMAESParameters.default_popsize,
+                {"int": "int", "log": "log", "N": N},
+            )
+        )
+        self.mu = int(
+            self.lam / 2
+        )  # number of parents/points/solutions for recombination
         if RecombinationWeights:
             self.weights = RecombinationWeights(self.lam)
             self.mueff = self.weights.mueff
         else:  # set non-negative recombination weights "manually"
-            _weights = [log(self.lam / 2 + 0.5) - log(i + 1) if i < self.mu else 0
-                        for i in range(self.lam)]
-            w_sum = sum(_weights[:self.mu])
+            _weights = [
+                log(self.lam / 2 + 0.5) - log(i + 1) if i < self.mu else 0
+                for i in range(self.lam)
+            ]
+            w_sum = sum(_weights[: self.mu])
             self.weights = [w / w_sum for w in _weights]  # sum is one now
-            self.mueff = sum(self.weights[:self.mu])**2 / \
-                         sum(w**2 for w in self.weights[:self.mu])  # variance-effectiveness of sum w_i x_i
+            self.mueff = sum(self.weights[: self.mu]) ** 2 / sum(
+                w**2 for w in self.weights[: self.mu]
+            )  # variance-effectiveness of sum w_i x_i
 
         # Strategy parameter setting: Adaptation
-        self.cc = (4 + self.mueff/N) / (N+4 + 2 * self.mueff/N)  # time constant for cumulation for C
-        self.cs = (self.mueff + 2) / (N + self.mueff + 5)  # time constant for cumulation for sigma control
-        self.c1 = 2 / ((N + 1.3)**2 + self.mueff)  # learning rate for rank-one update of C
-        self.cmu = min([1 - self.c1, 2 * (self.mueff - 2 + 1/self.mueff) / ((N + 2)**2 + self.mueff)])  # and for rank-mu update
-        self.damps = 2 * self.mueff/self.lam + 0.3 + self.cs  # damping for sigma, usually close to 1
+        self.cc = (4 + self.mueff / N) / (
+            N + 4 + 2 * self.mueff / N
+        )  # time constant for cumulation for C
+        self.cs = (self.mueff + 2) / (
+            N + self.mueff + 5
+        )  # time constant for cumulation for sigma control
+        self.c1 = 2 / (
+            (N + 1.3) ** 2 + self.mueff
+        )  # learning rate for rank-one update of C
+        self.cmu = min(
+            [
+                1 - self.c1,
+                2 * (self.mueff - 2 + 1 / self.mueff) / ((N + 2) ** 2 + self.mueff),
+            ]
+        )  # and for rank-mu update
+        self.damps = (
+            2 * self.mueff / self.lam + 0.3 + self.cs
+        )  # damping for sigma, usually close to 1
 
         if RecombinationWeights:
             self.weights.finalize_negative_weights(N, self.c1, self.cmu)
         # gap to postpone eigendecomposition to achieve O(N**2) per eval
         # 0.5 is chosen such that eig takes 2 times the time of tell in >=20-D
-        self.lazy_gap_evals = 0.5 * N * self.lam * (self.c1 + self.cmu)**-1 / N**2
+        self.lazy_gap_evals = 0.5 * N * self.lam * (self.c1 + self.cmu) ** -1 / N**2
+
 
 class CMAES(OOOptimizer):  # could also inherit from object
     """class for non-linear non-convex numerical minimization with CMA-ES.
@@ -299,12 +328,17 @@ class CMAES(OOOptimizer):  # could also inherit from object
     :See: `fmin`, `OOOptimizer.optimize`
 
     """
-    def __init__(self, xstart, sigma,  # mandatory
-                 popsize=CMAESParameters.default_popsize,
-                 ftarget=None,
-                 maxfevals='100 * popsize + '  # 100 iterations plus...
-                           '150 * (N + 3)**2 * popsize**0.5',
-                 randn=random_normalvariate):
+
+    def __init__(
+        self,
+        xstart,
+        sigma,  # mandatory
+        popsize=CMAESParameters.default_popsize,
+        ftarget=None,
+        maxfevals="100 * popsize + "  # 100 iterations plus...
+        "150 * (N + 3)**2 * popsize**0.5",
+        randn=random_normalvariate,
+    ):
         """Instantiate `CMAES` object instance using `xstart` and `sigma`.
 
         Parameters
@@ -331,8 +365,9 @@ class CMAES(OOOptimizer):  # could also inherit from object
         # process some input parameters and set static parameters
         N = len(xstart)  # number of objective variables/problem dimension
         self.params = CMAESParameters(N, popsize)
-        self.maxfevals = eval(safe_str(maxfevals,
-                                       known_words={'N': N, 'popsize': self.params.lam}))
+        self.maxfevals = eval(
+            safe_str(maxfevals, known_words={"N": N, "popsize": self.params.lam})
+        )
         self.ftarget = ftarget  # stop if fitness <= ftarget
         self.randn = randn
 
@@ -343,7 +378,7 @@ class CMAES(OOOptimizer):  # could also inherit from object
         self.ps = N * [0]  # and for sigma
         self.C = DecomposingPositiveMatrix(N)  # covariance matrix
         self.counteval = 0  # countiter should be equal to counteval / lam
-        self.fitvals = []   # for bookkeeping output and termination
+        self.fitvals = []  # for bookkeeping output and termination
         self.best = BestSolution()
         self.logger = CMAESDataLogger()  # for convenience and output
 
@@ -357,12 +392,13 @@ class CMAES(OOOptimizer):  # could also inherit from object
 
         and return a `list` of the sampled "vectors".
         """
-        self.C.update_eigensystem(self.counteval,
-                                  self.params.lazy_gap_evals)
+        self.C.update_eigensystem(self.counteval, self.params.lazy_gap_evals)
         candidate_solutions = []
         for _k in range(self.params.lam):  # repeat lam times
-            z = [self.sigma * eigenval**0.5 * self.randn(0, 1)
-                 for eigenval in self.C.eigenvalues]
+            z = [
+                self.sigma * eigenval**0.5 * self.randn(0, 1)
+                for eigenval in self.C.eigenvalues
+            ]
             y = dot(self.C.eigenbasis, z)
             candidate_solutions.append(plus(self.xmean, y))
         return candidate_solutions
@@ -393,34 +429,44 @@ class CMAES(OOOptimizer):  # could also inherit from object
         self.best.update(arx[0], self.fitvals[0], self.counteval)
 
         ### recombination, compute new weighted mean value
-        self.xmean = dot(arx[0:par.mu], par.weights[:par.mu], transpose=True)
+        self.xmean = dot(arx[0 : par.mu], par.weights[: par.mu], transpose=True)
         #          = [sum(self.weights[k] * arx[k][i] for k in range(self.mu))
         #                                             for i in range(N)]
 
         ### Cumulation: update evolution paths
         y = minus(self.xmean, xold)
         z = dot(self.C.invsqrt, y)  # == C**(-1/2) * (xnew - xold)
-        csn = (par.cs * (2 - par.cs) * par.mueff)**0.5 / self.sigma
+        csn = (par.cs * (2 - par.cs) * par.mueff) ** 0.5 / self.sigma
         for i in range(N):  # update evolution path ps
             self.ps[i] = (1 - par.cs) * self.ps[i] + csn * z[i]
-        ccn = (par.cc * (2 - par.cc) * par.mueff)**0.5 / self.sigma
+        ccn = (par.cc * (2 - par.cc) * par.mueff) ** 0.5 / self.sigma
         # turn off rank-one accumulation when sigma increases quickly
-        hsig = (sum(x**2 for x in self.ps) / N  # ||ps||^2 / N is 1 in expectation
-                / (1-(1-par.cs)**(2*self.counteval/par.lam))  # account for initial value of ps
-                < 2 + 4./(N+1))  # should be smaller than 2 + ...
+        hsig = sum(x**2 for x in self.ps) / N / (  # ||ps||^2 / N is 1 in expectation
+            1 - (1 - par.cs) ** (2 * self.counteval / par.lam)
+        ) < 2 + 4.0 / (  # account for initial value of ps
+            N + 1
+        )  # should be smaller than 2 + ...
         for i in range(N):  # update evolution path pc
             self.pc[i] = (1 - par.cc) * self.pc[i] + ccn * hsig * y[i]
 
         ### Adapt covariance matrix C
         # minor adjustment for the variance loss from hsig
-        c1a = par.c1 * (1 - (1-hsig**2) * par.cc * (2-par.cc))
-        self.C.multiply_with(1 - c1a - par.cmu * sum(par.weights))  # C *= 1 - c1 - cmu * sum(w)
-        self.C.addouter(self.pc, par.c1)  # C += c1 * pc * pc^T, so-called rank-one update
+        c1a = par.c1 * (1 - (1 - hsig**2) * par.cc * (2 - par.cc))
+        self.C.multiply_with(
+            1 - c1a - par.cmu * sum(par.weights)
+        )  # C *= 1 - c1 - cmu * sum(w)
+        self.C.addouter(
+            self.pc, par.c1
+        )  # C += c1 * pc * pc^T, so-called rank-one update
         for k, wk in enumerate(par.weights):  # so-called rank-mu update
             if wk < 0:  # guaranty positive definiteness
-                wk *= N * (self.sigma / self.C.mahalanobis_norm(minus(arx[k], xold)))**2
-            self.C.addouter(minus(arx[k], xold),  # C += wk * cmu * dx * dx^T
-                            wk * par.cmu / self.sigma**2)
+                wk *= (
+                    N * (self.sigma / self.C.mahalanobis_norm(minus(arx[k], xold))) ** 2
+                )
+            self.C.addouter(
+                minus(arx[k], xold),  # C += wk * cmu * dx * dx^T
+                wk * par.cmu / self.sigma**2,
+            )
 
         ### Adapt step-size sigma
         cn, sum_square_ps = par.cs / par.damps, sum(x**2 for x in self.ps)
@@ -437,18 +483,20 @@ class CMAES(OOOptimizer):  # could also inherit from object
         if self.counteval <= 0:
             return res
         if self.counteval >= self.maxfevals:
-            res['maxfevals'] = self.maxfevals
-        if self.ftarget is not None and len(self.fitvals) > 0 \
-                and self.fitvals[0] <= self.ftarget:
-            res['ftarget'] = self.ftarget
+            res["maxfevals"] = self.maxfevals
+        if (
+            self.ftarget is not None
+            and len(self.fitvals) > 0
+            and self.fitvals[0] <= self.ftarget
+        ):
+            res["ftarget"] = self.ftarget
         if self.C.condition_number > 1e14:
-            res['condition'] = self.C.condition_number
-        if len(self.fitvals) > 1 \
-                and self.fitvals[-1] - self.fitvals[0] < 1e-12:
-            res['tolfun'] = 1e-12
-        if self.sigma * max(self.C.eigenvalues)**0.5 < 1e-11:
+            res["condition"] = self.C.condition_number
+        if len(self.fitvals) > 1 and self.fitvals[-1] - self.fitvals[0] < 1e-12:
+            res["tolfun"] = 1e-12
+        if self.sigma * max(self.C.eigenvalues) ** 0.5 < 1e-11:
             # remark: max(D) >= max(diag(C))**0.5
-            res['tolx'] = 1e-11
+            res["tolx"] = 1e-11
         return res
 
     @property
@@ -456,17 +504,18 @@ class CMAES(OOOptimizer):  # could also inherit from object
         """the `tuple` ``(xbest, f(xbest), evaluations_xbest, evaluations,
         iterations, xmean, stds)``
         """
-        return (self.best.x,
-                self.best.f,
-                self.best.evals,
-                self.counteval,
-                int(self.counteval / self.params.lam),
-                self.xmean,
-                [self.sigma * C_ii**0.5 for C_ii in self.C.diag])
+        return (
+            self.best.x,
+            self.best.f,
+            self.best.evals,
+            self.counteval,
+            int(self.counteval / self.params.lam),
+            self.xmean,
+            [self.sigma * C_ii**0.5 for C_ii in self.C.diag],
+        )
 
     def disp(self, verb_modulo=1):
-        """`print` some iteration info to `stdout`
-        """
+        """`print` some iteration info to `stdout`"""
         if verb_modulo is None:
             verb_modulo = 20
         if not verb_modulo:
@@ -474,12 +523,15 @@ class CMAES(OOOptimizer):  # could also inherit from object
         iteration = self.counteval / self.params.lam
 
         if iteration == 1 or iteration % (10 * verb_modulo) < 1:
-            print('evals: ax-ratio max(std)   f-value')
+            print("evals: ax-ratio max(std)   f-value")
         if iteration <= 2 or iteration % verb_modulo < 1:
-            print(str(self.counteval).rjust(5) + ': ' +
-                  ' %6.1f %8.1e  ' % (self.C.condition_number**0.5,
-                                      self.sigma * max(self.C.diag)**0.5) +
-                  str(self.fitvals[0]))
+            print(
+                str(self.counteval).rjust(5)
+                + ": "
+                + " %6.1f %8.1e  "
+                % (self.C.condition_number**0.5, self.sigma * max(self.C.diag) ** 0.5)
+                + str(self.fitvals[0])
+            )
             _stdout.flush()
 
 
@@ -521,7 +573,7 @@ class CMAESDataLogger(_BaseDataLogger):  # could also inherit from object
     also to downsample data to prevent plotting of long runs to take
     forever. ``"], 'key': "`` or ``"]}"`` is the place where to
     prepend/append new data in the file.
-"""
+    """
 
     plotted = 0
     """plot count for all instances"""
@@ -535,8 +587,16 @@ class CMAESDataLogger(_BaseDataLogger):  # could also inherit from object
         self.filename = "_CMAESDataLogger_datadict.py"
         self.optim = None
         self.modulo = verb_modulo
-        self._data = {'eval': [], 'iter': [], 'stds': [], 'D': [],
-                      'sigma': [], 'fit': [], 'xmean': [], 'more_data': []}
+        self._data = {
+            "eval": [],
+            "iter": [],
+            "stds": [],
+            "D": [],
+            "sigma": [],
+            "fit": [],
+            "xmean": [],
+            "more_data": [],
+        }
         self.counter = 0  # number of calls of add
 
     def add(self, es=None, force=False, more_data=None):
@@ -545,29 +605,29 @@ class CMAESDataLogger(_BaseDataLogger):  # could also inherit from object
         """
         es = es or self.optim
         if not isinstance(es, CMAES):
-            raise RuntimeWarning('logged object must be a CMAES instance,'
-                                 ' was %s' % type(es))
+            raise RuntimeWarning(
+                "logged object must be a CMAES instance," " was %s" % type(es)
+            )
         dat = self._data  # a convenient alias
         self.counter += 1
         if force and self.counter == 1:
             self.counter = 0
-        if (self.modulo
-                and (len(dat['eval']) == 0
-                     or es.counteval != dat['eval'][-1])
-                and (self.counter < 4 or force
-                     or int(self.counter) % self.modulo == 0)):
-            dat['eval'].append(es.counteval)
-            dat['iter'].append(es.counteval / es.params.lam)
-            dat['stds'].append([es.C[i][i]**0.5
-                                for i in range(len(es.C))])
-            dat['D'].append(sorted(ev**0.5 for ev in es.C.eigenvalues))
-            dat['sigma'].append(es.sigma)
-            dat['fit'].append(es.fitvals[0] if hasattr(es, 'fitvals')
-                              and es.fitvals
-                              else None)
-            dat['xmean'].append([x for x in es.xmean])
+        if (
+            self.modulo
+            and (len(dat["eval"]) == 0 or es.counteval != dat["eval"][-1])
+            and (self.counter < 4 or force or int(self.counter) % self.modulo == 0)
+        ):
+            dat["eval"].append(es.counteval)
+            dat["iter"].append(es.counteval / es.params.lam)
+            dat["stds"].append([es.C[i][i] ** 0.5 for i in range(len(es.C))])
+            dat["D"].append(sorted(ev**0.5 for ev in es.C.eigenvalues))
+            dat["sigma"].append(es.sigma)
+            dat["fit"].append(
+                es.fitvals[0] if hasattr(es, "fitvals") and es.fitvals else None
+            )
+            dat["xmean"].append([x for x in es.xmean])
             if more_data is not None:
-                dat['more_data'].append(more_data)
+                dat["more_data"].append(more_data)
         return self
 
     def plot(self, fig_number=322):
@@ -577,83 +637,115 @@ class CMAESDataLogger(_BaseDataLogger):  # could also inherit from object
         """
         from matplotlib import pylab
         from matplotlib.pylab import (
-            gcf, gca, figure, plot, xlabel, grid, semilogy, text, draw, show, ion,
-            subplot as _subplot, tight_layout, rcParamsDefault, xlim, ylim
-            )
+            gcf,
+            gca,
+            figure,
+            plot,
+            xlabel,
+            grid,
+            semilogy,
+            text,
+            draw,
+            show,
+            ion,
+            subplot as _subplot,
+            tight_layout,
+            rcParamsDefault,
+            xlim,
+            ylim,
+        )
+
         def title_(*args, **kwargs):
-            kwargs.setdefault('size', rcParamsDefault['axes.labelsize'])
+            kwargs.setdefault("size", rcParamsDefault["axes.labelsize"])
             pylab.title(*args, **kwargs)
+
         def subtitle(*args, **kwargs):
-            kwargs.setdefault('horizontalalignment', 'center')
-            text(0.5 * (xlim()[1] - xlim()[0]), 0.9 * ylim()[1],
-                 *args, **kwargs)
+            kwargs.setdefault("horizontalalignment", "center")
+            text(0.5 * (xlim()[1] - xlim()[0]), 0.9 * ylim()[1], *args, **kwargs)
+
         def legend_(*args, **kwargs):
-            kwargs.setdefault('framealpha', 0.3)
-            kwargs.setdefault('fancybox', True)
-            kwargs.setdefault('fontsize', rcParamsDefault['font.size'] - 2)
+            kwargs.setdefault("framealpha", 0.3)
+            kwargs.setdefault("fancybox", True)
+            kwargs.setdefault("fontsize", rcParamsDefault["font.size"] - 2)
             pylab.legend(*args, **kwargs)
+
         def subplot(*args, **kwargs):
             with _warnings.catch_warnings():
                 _warnings.simplefilter("ignore")
-                _subplot(*args, **kwargs)  # catch unjustified deprecation warning because subplot and add_subplot are not separate
+                _subplot(
+                    *args, **kwargs
+                )  # catch unjustified deprecation warning because subplot and add_subplot are not separate
+
         if isinstance(fig_number, int):
             figure(fig_number)
 
         dat = self._data  # dictionary with entries as given in __init__
-        if not dat or not dat['eval'] or len(dat['eval']) <= 2:
+        if not dat or not dat["eval"] or len(dat["eval"]) <= 2:
             return
         try:  # a hack to get the presumable population size lambda
-            strpopsize = ' (evaluations / %s)' % str(dat['eval'][-2] -
-                                                     dat['eval'][-3])
+            strpopsize = " (evaluations / %s)" % str(dat["eval"][-2] - dat["eval"][-3])
         except IndexError:
-            strpopsize = ''
+            strpopsize = ""
 
         # plot fit, Delta fit, sigma
         subplot(221)
         gca().clear()
-        if dat['fit'][0] is None:  # plot is fine with None, but comput-
-            dat['fit'][0] = dat['fit'][1]  # tations need numbers
+        if dat["fit"][0] is None:  # plot is fine with None, but comput-
+            dat["fit"][0] = dat["fit"][1]  # tations need numbers
             # should be reverted later, but let's be lazy
-        assert dat['fit'].count(None) == 0
-        fmin = min(dat['fit'])
-        imin = dat['fit'].index(fmin)
-        dat['fit'][imin] = max(dat['fit']) + 1
-        fmin2 = min(dat['fit'])
-        dat['fit'][imin] = fmin
-        semilogy(dat['iter'], [f - fmin if f - fmin > 1e-19 else None
-                               for f in dat['fit']],
-                 'c', linewidth=1, label='f-min(f)')
-        semilogy(dat['iter'], [max((fmin2 - fmin, 1e-19)) if f - fmin <= 1e-19 else None
-                               for f in dat['fit']], 'C1*')
+        assert dat["fit"].count(None) == 0
+        fmin = min(dat["fit"])
+        imin = dat["fit"].index(fmin)
+        dat["fit"][imin] = max(dat["fit"]) + 1
+        fmin2 = min(dat["fit"])
+        dat["fit"][imin] = fmin
+        semilogy(
+            dat["iter"],
+            [f - fmin if f - fmin > 1e-19 else None for f in dat["fit"]],
+            "c",
+            linewidth=1,
+            label="f-min(f)",
+        )
+        semilogy(
+            dat["iter"],
+            [
+                max((fmin2 - fmin, 1e-19)) if f - fmin <= 1e-19 else None
+                for f in dat["fit"]
+            ],
+            "C1*",
+        )
 
-        semilogy(dat['iter'], [abs(f) for f in dat['fit']], 'b',
-                 label='abs(f-value)')
-        semilogy(dat['iter'], dat['sigma'], 'g', label='sigma')
-        semilogy(dat['iter'][imin], abs(fmin), 'r*', label='abs(min(f))')
-        if dat['more_data']:
+        semilogy(dat["iter"], [abs(f) for f in dat["fit"]], "b", label="abs(f-value)")
+        semilogy(dat["iter"], dat["sigma"], "g", label="sigma")
+        semilogy(dat["iter"][imin], abs(fmin), "r*", label="abs(min(f))")
+        if dat["more_data"]:
             gca().twinx()
-            plot(dat['iter'], dat['more_data'])
+            plot(dat["iter"], dat["more_data"])
         grid(True)
-        legend_(*[[v[i] for i in [1, 0, 2, 3]]  # just a reordering
-                  for v in gca().get_legend_handles_labels()])
+        legend_(
+            *[
+                [v[i] for i in [1, 0, 2, 3]]  # just a reordering
+                for v in gca().get_legend_handles_labels()
+            ]
+        )
 
         # plot xmean
         subplot(222)
         gca().clear()
-        plot(dat['iter'], dat['xmean'])
-        for i in range(len(dat['xmean'][-1])):
-            text(dat['iter'][0], dat['xmean'][0][i], str(i))
-            text(dat['iter'][-1], dat['xmean'][-1][i], str(i))
-        subtitle('mean solution')
+        plot(dat["iter"], dat["xmean"])
+        for i in range(len(dat["xmean"][-1])):
+            text(dat["iter"][0], dat["xmean"][0][i], str(i))
+            text(dat["iter"][-1], dat["xmean"][-1][i], str(i))
+        subtitle("mean solution")
         grid(True)
 
         # plot squareroot of eigenvalues
-        if dat['D'][-1][0] != dat['D'][-1][-1]:
+        if dat["D"][-1][0] != dat["D"][-1][-1]:
             subplot(223)
             gca().clear()
-            semilogy(dat['iter'], dat['D'], 'm')
-            xlabel('iterations' + strpopsize)
-            title_('Axis lengths')
+            semilogy(dat["iter"], dat["D"], "m")
+            xlabel("iterations" + strpopsize)
+            title_("Axis lengths")
             grid(True)
 
         # plot stds
@@ -663,12 +755,12 @@ class CMAESDataLogger(_BaseDataLogger):  # could also inherit from object
         # else:
         #     twinx()
         gca().clear()
-        semilogy(dat['iter'], dat['stds'])
-        for i in range(len(dat['stds'][-1])):
-            text(dat['iter'][-1], dat['stds'][-1][i], str(i))
-        title_('Coordinate-wise STDs w/o sigma')
+        semilogy(dat["iter"], dat["stds"])
+        for i in range(len(dat["stds"][-1])):
+            text(dat["iter"][-1], dat["stds"][-1][i], str(i))
+        title_("Coordinate-wise STDs w/o sigma")
         grid(True)
-        xlabel('iterations' + strpopsize)
+        xlabel("iterations" + strpopsize)
         _stdout.flush()
         tight_layout()  # avoid superfluous padding
         # draw(), show()  # canvas.draw seem to do the job better
@@ -679,18 +771,21 @@ class CMAESDataLogger(_BaseDataLogger):  # could also inherit from object
 
     def save(self, name=None):
         """save data to file `name` or ``self.filename``"""
-        with open(name or self.filename, 'w') as f:
+        with open(name or self.filename, "w") as f:
             f.write(repr(self._data))
 
     def load(self, name=None):
         """load data from file `name` or ``self.filename``"""
         from ast import literal_eval
-        with open(name or self.filename, 'r') as f:
+
+        with open(name or self.filename, "r") as f:
             self._data = literal_eval(f.read())
         return self
 
-#_____________________________________________________________________
-#_________________ Fitness (Objective) Functions _____________________
+
+# _____________________________________________________________________
+# _________________ Fitness (Objective) Functions _____________________
+
 
 class ff(object):  # instead of a submodule
     """versatile collection of test functions in static methods"""
@@ -700,52 +795,56 @@ class ff(object):  # instead of a submodule
         """ellipsoid test objective function"""
         n = len(x)
         aratio = 1e3
-        return sum(x[i]**2 * aratio**(2.*i/(n-1)) for i in range(n))
+        return sum(x[i] ** 2 * aratio ** (2.0 * i / (n - 1)) for i in range(n))
 
     @staticmethod
     def sphere(x):
         """sphere, ``sum(x**2)``, test objective function"""
-        return sum(x[i]**2 for i in range(len(x)))
+        return sum(x[i] ** 2 for i in range(len(x)))
 
     @staticmethod
     def tablet(x):
         """discus test objective function"""
-        return sum(xi**2 for xi in x) + (1e6-1) * x[0]**2
+        return sum(xi**2 for xi in x) + (1e6 - 1) * x[0] ** 2
 
     @staticmethod
     def rosenbrock(x):
         """Rosenbrock test objective function"""
         n = len(x)
         if n < 2:
-            raise ValueError('dimension must be greater one')
-        return sum(100 * (x[i]**2 - x[i+1])**2 + (x[i] - 1)**2 for i
-                   in range(n-1))
+            raise ValueError("dimension must be greater one")
+        return sum(
+            100 * (x[i] ** 2 - x[i + 1]) ** 2 + (x[i] - 1) ** 2 for i in range(n - 1)
+        )
 
-#_____________________________________________________________________
-#_______________________ Helper Class&Functions ______________________
+
+# _____________________________________________________________________
+# _______________________ Helper Class&Functions ______________________
 #
 class BestSolution(object):
     """container to keep track of the best solution seen"""
+
     def __init__(self, x=None, f=None, evals=None):
-        """take `x`, `f`, and `evals` to initialize the best solution
-        """
+        """take `x`, `f`, and `evals` to initialize the best solution"""
         self.x, self.f, self.evals = x, f, evals
 
     def update(self, x, f, evals=None):
-        """update the best solution if ``f < self.f``
-        """
+        """update the best solution if ``f < self.f``"""
         if self.f is None or f < self.f:
             self.x = x
             self.f = f
             self.evals = evals
         return self
+
     @property
     def all(self):
         """``(x, f, evals)`` of the best seen solution"""
         return self.x, self.f, self.evals
 
+
 class SquareMatrix(list):  # inheritance from numpy.ndarray is not recommended
     """rudimental square matrix class"""
+
     def __init__(self, dimension):
         """initialize with identity matrix"""
         for i in range(dimension):
@@ -768,11 +867,12 @@ class SquareMatrix(list):  # inheritance from numpy.ndarray is not recommended
             for j in range(len(row)):
                 row[j] += factor * b[i] * b[j]
         return self
+
     @property
     def diag(self):
-        """diagonal of the matrix as a copy (save to change)
-        """
+        """diagonal of the matrix as a copy (save to change)"""
         return [self[i][i] for i in range(len(self)) if i < len(self[i])]
+
 
 class DecomposingPositiveMatrix(SquareMatrix):
     """Symmetric matrix maintaining its own eigendecomposition.
@@ -790,6 +890,7 @@ class DecomposingPositiveMatrix(SquareMatrix):
         C = C.eigenbasis x diag(C.eigenvalues) x C.eigenbasis^T
 
     """
+
     def __init__(self, dimension):
         SquareMatrix.__init__(self, dimension)
         self.eigenbasis = eye(dimension)
@@ -813,28 +914,32 @@ class DecomposingPositiveMatrix(SquareMatrix):
             raise RuntimeError(
                 "The smallest eigenvalue is <= 0 after %d evaluations!"
                 "\neigenvectors:\n%s \neigenvalues:\n%s"
-                % (current_eval, str(self.eigenbasis), str(self.eigenvalues)))
+                % (current_eval, str(self.eigenbasis), str(self.eigenvalues))
+            )
         self.condition_number = max(self.eigenvalues) / min(self.eigenvalues)
         # now compute invsqrt(C) = C**(-1/2) = B D**(-1/2) B'
         # this is O(n^3) and takes about 25% of the time of eig
         for i in range(len(self)):
-            for j in range(i+1):
+            for j in range(i + 1):
                 self.invsqrt[i][j] = self.invsqrt[j][i] = sum(
-                    self.eigenbasis[i][k] * self.eigenbasis[j][k]
-                    / self.eigenvalues[k]**0.5 for k in range(len(self)))
+                    self.eigenbasis[i][k]
+                    * self.eigenbasis[j][k]
+                    / self.eigenvalues[k] ** 0.5
+                    for k in range(len(self))
+                )
         self.updated_eval = current_eval
         return self
 
     def mahalanobis_norm(self, dx):
-        """return ``(dx^T * C^-1 * dx)**0.5``
-        """
-        return sum(xi**2 for xi in dot(self.invsqrt, dx))**0.5
+        """return ``(dx^T * C^-1 * dx)**0.5``"""
+        return sum(xi**2 for xi in dot(self.invsqrt, dx)) ** 0.5
 
     def _enforce_symmetry(self):
         for i in range(len(self)):
             for j in range(i):
                 self[i][j] = self[j][i] = (self[i][j] + self[j][i]) / 2
         return self
+
 
 def eye(dimension):
     """return identity matrix as `list` of "vectors" (lists themselves)"""
@@ -844,32 +949,35 @@ def eye(dimension):
         m[i][i] = 1
     return m
 
+
 def dot(A, b, transpose=False):
-    """ usual dot product of "matrix" A with "vector" b.
+    """usual dot product of "matrix" A with "vector" b.
 
     ``A[i]`` is the i-th row of A. With ``transpose=True``, A transposed
     is used.
     """
     if not transpose:
-        return [sum(A[i][j] * b[j] for j in range(len(b)))
-                for i in range(len(A))]
+        return [sum(A[i][j] * b[j] for j in range(len(b))) for i in range(len(A))]
     else:
-        return [sum(A[j][i] * b[j] for j in range(len(b)))
-                for i in range(len(A[0]))]
+        return [sum(A[j][i] * b[j] for j in range(len(b))) for i in range(len(A[0]))]
+
 
 def plus(a, b):
-    """add vectors, return a + b """
+    """add vectors, return a + b"""
     return [a[i] + b[i] for i in range(len(a))]
+
 
 def minus(a, b):
     """subtract vectors, return a - b"""
     return [a[i] - b[i] for i in range(len(a))]
+
 
 def argsort(a):
     """return index list to get `a` in order, ie
     ``a[argsort(a)[i]] == sorted(a)[i]``
     """
     return sorted(range(len(a)), key=a.__getitem__)  # a.__getitem__(i) is a[i]
+
 
 def safe_str(s, known_words=None):
     """return ``s`` as `str` safe to `eval` or raise an exception.
@@ -888,7 +996,7 @@ def safe_str(s, known_words=None):
     ' i 3.1 t ( 3.1 )'
 
     """
-    safe_chars = ' 0123456789.,+-*()[]e<>='
+    safe_chars = " 0123456789.,+-*()[]e<>="
     if s != str(s):
         return str(s)
     if not known_words:
@@ -896,16 +1004,19 @@ def safe_str(s, known_words=None):
     stest = s[:]  # test this string
     sret = s[:]  # return this string
     for word in sorted(known_words.keys(), key=len, reverse=True):
-        stest = stest.replace(word, '  ')
+        stest = stest.replace(word, "  ")
         sret = sret.replace(word, " %s " % known_words[word])
     for c in stest:
         if c not in safe_chars:
-            raise ValueError('"%s" is not a safe string'
-                             ' (known words are %s)' % (s, str(known_words)))
+            raise ValueError(
+                '"%s" is not a safe string'
+                " (known words are %s)" % (s, str(known_words))
+            )
     return sret
 
-#____________________________________________________________
-#____________________________________________________________
+
+# ____________________________________________________________
+# ____________________________________________________________
 #
 # C and B are arrays rather than matrices, because they are
 # addressed via B[i][j], matrices can only be addressed via B[i,j]
@@ -915,6 +1026,7 @@ def safe_str(s, known_words=None):
 
 # Symmetric Householder reduction to tridiagonal form, translated from
 #   JAMA package.
+
 
 def eig(C):
     """eigendecomposition of a symmetric matrix.
@@ -954,8 +1066,8 @@ def eig(C):
     #  tred2(N, B, diagD, offdiag); B=C on input
     #  tql2(N, diagD, offdiag, B);
 
-    #import numpy as np
-    #return np.linalg.eigh(C)  # return sorted EVs
+    # import numpy as np
+    # return np.linalg.eigh(C)  # return sorted EVs
     try:
         num_opt = False  # True doesn't work (yet)
         if num_opt:
@@ -972,14 +1084,14 @@ def eig(C):
 
         # num_opt = False  # factor 1.5 in 30-D
 
-        d[:] = V[n-1][:]  # d is output argument
+        d[:] = V[n - 1][:]  # d is output argument
         if num_opt:
             # V = np.asarray(V, dtype=float)
             e = np.asarray(e, dtype=float)
 
         # Householder reduction to tridiagonal form.
 
-        for i in range(n-1, 0, -1):
+        for i in range(n - 1, 0, -1):
             # Scale to avoid under/overflow.
             h = 0.0
             if not num_opt:
@@ -990,9 +1102,9 @@ def eig(C):
                 scale = sum(np.abs(d[0:i]))
 
             if scale == 0.0:
-                e[i] = d[i-1]
+                e[i] = d[i - 1]
                 for j in range(i):
-                    d[j] = V[i-1][j]
+                    d[j] = V[i - 1][j]
                     V[i][j] = 0.0
                     V[j][i] = 0.0
             else:
@@ -1006,7 +1118,7 @@ def eig(C):
                     d[:i] /= scale
                     h = np.dot(d[:i], d[:i])
 
-                f = d[i-1]
+                f = d[i - 1]
                 g = h**0.5
 
                 if f > 0:
@@ -1014,7 +1126,7 @@ def eig(C):
 
                 e[i] = scale * g
                 h -= f * g
-                d[i-1] = f - g
+                d[i - 1] = f - g
                 if not num_opt:
                     for j in range(i):
                         e[j] = 0.0
@@ -1027,13 +1139,13 @@ def eig(C):
                     V[j][i] = f
                     g = e[j] + V[j][j] * f
                     if not num_opt:
-                        for k in range(j+1, i):
+                        for k in range(j + 1, i):
                             g += V[k][j] * d[k]
                             e[k] += V[k][j] * f
                         e[j] = g
                     else:
-                        e[j+1:i] += V.T[j][j+1:i] * f
-                        e[j] = g + np.dot(V.T[j][j+1:i], d[j+1:i])
+                        e[j + 1 : i] += V.T[j][j + 1 : i] * f
+                        e[j] = g + np.dot(V.T[j][j + 1 : i], d[j + 1 : i])
 
                 f = 0.0
                 if not num_opt:
@@ -1056,11 +1168,11 @@ def eig(C):
                     g = e[j]
                     if not num_opt:
                         for k in range(j, i):
-                            V[k][j] -= (f * e[k] + g * d[k])
+                            V[k][j] -= f * e[k] + g * d[k]
                     else:
-                        V.T[j][j:i] -= (f * e[j:i] + g * d[j:i])
+                        V.T[j][j:i] -= f * e[j:i] + g * d[j:i]
 
-                    d[j] = V[i-1][j]
+                    d[j] = V[i - 1][j]
                     V[i][j] = 0.0
 
             d[i] = h
@@ -1068,43 +1180,43 @@ def eig(C):
 
         # Accumulate transformations.
 
-        for i in range(n-1):
-            V[n-1][i] = V[i][i]
+        for i in range(n - 1):
+            V[n - 1][i] = V[i][i]
             V[i][i] = 1.0
-            h = d[i+1]
+            h = d[i + 1]
             if h != 0.0:
                 if not num_opt:
-                    for k in range(i+1):
-                        d[k] = V[k][i+1] / h
+                    for k in range(i + 1):
+                        d[k] = V[k][i + 1] / h
                 else:
-                    d[:i+1] = V.T[i+1][:i+1] / h
+                    d[: i + 1] = V.T[i + 1][: i + 1] / h
 
-                for j in range(i+1):
+                for j in range(i + 1):
                     if not num_opt:
                         g = 0.0
-                        for k in range(i+1):
-                            g += V[k][i+1] * V[k][j]
-                        for k in range(i+1):
+                        for k in range(i + 1):
+                            g += V[k][i + 1] * V[k][j]
+                        for k in range(i + 1):
                             V[k][j] -= g * d[k]
                     else:
-                        g = np.dot(V.T[i+1][0:i+1], V.T[j][0:i+1])
-                        V.T[j][:i+1] -= g * d[:i+1]
+                        g = np.dot(V.T[i + 1][0 : i + 1], V.T[j][0 : i + 1])
+                        V.T[j][: i + 1] -= g * d[: i + 1]
 
             if not num_opt:
-                for k in range(i+1):
-                    V[k][i+1] = 0.0
+                for k in range(i + 1):
+                    V[k][i + 1] = 0.0
             else:
-                V.T[i+1][:i+1] = 0.0
+                V.T[i + 1][: i + 1] = 0.0
 
         if not num_opt:
             for j in range(n):
-                d[j] = V[n-1][j]
-                V[n-1][j] = 0.0
+                d[j] = V[n - 1][j]
+                V[n - 1][j] = 0.0
         else:
-            d[:n] = V[n-1][:n]
-            V[n-1][:n] = 0.0
+            d[:n] = V[n - 1][:n]
+            V[n - 1][:n] = 0.0
 
-        V[n-1][n-1] = 1.0
+        V[n - 1][n - 1] = 1.0
         e[0] = 0.0
 
     # Symmetric tridiagonal QL algorithm, taken from JAMA package.
@@ -1120,10 +1232,10 @@ def eig(C):
 
         if not num_opt:
             for i in range(1, n):  # (int i = 1; i < n; i++):
-                e[i-1] = e[i]
+                e[i - 1] = e[i]
         else:
-            e[0:n-1] = e[1:n]
-        e[n-1] = 0.0
+            e[0 : n - 1] = e[1:n]
+        e[n - 1] = 0.0
 
         f = 0.0
         tst1 = 0.0
@@ -1135,7 +1247,7 @@ def eig(C):
             tst1 = max(tst1, abs(d[l]) + abs(e[l]))
             m = l
             while m < n:
-                if abs(e[m]) <= eps*tst1:
+                if abs(e[m]) <= eps * tst1:
                     break
                 m += 1
 
@@ -1150,20 +1262,20 @@ def eig(C):
                     # Compute implicit shift
 
                     g = d[l]
-                    p = (d[l+1] - g) / (2.0 * e[l])
-                    r = (p**2 + 1)**0.5  # hypot(p, 1.0)
+                    p = (d[l + 1] - g) / (2.0 * e[l])
+                    r = (p**2 + 1) ** 0.5  # hypot(p, 1.0)
                     if p < 0:
                         r = -r
 
                     d[l] = e[l] / (p + r)
-                    d[l+1] = e[l] * (p + r)
-                    dl1 = d[l+1]
+                    d[l + 1] = e[l] * (p + r)
+                    dl1 = d[l + 1]
                     h = g - d[l]
                     if not num_opt:
-                        for i in range(l+2, n):
+                        for i in range(l + 2, n):
                             d[i] -= h
                     else:
-                        d[l+2:n] -= h
+                        d[l + 2 : n] -= h
 
                     f = f + h
 
@@ -1173,36 +1285,36 @@ def eig(C):
                     c = 1.0
                     c2 = c
                     c3 = c
-                    el1 = e[l+1]
+                    el1 = e[l + 1]
                     s = 0.0
                     s2 = 0.0
 
                     # hh = V.T[0].copy()  # only with num_opt
-                    for i in range(m-1, l-1, -1):
+                    for i in range(m - 1, l - 1, -1):
                         # (int i = m-1; i >= l; i--) {
                         c3 = c2
                         c2 = c
                         s2 = s
                         g = c * e[i]
                         h = c * p
-                        r = (p**2 + e[i]**2)**0.5  # hypot(p,e[i])
-                        e[i+1] = s * r
+                        r = (p**2 + e[i] ** 2) ** 0.5  # hypot(p,e[i])
+                        e[i + 1] = s * r
                         s = e[i] / r
                         c = p / r
                         p = c * d[i] - s * g
-                        d[i+1] = h + s * (c * g + s * d[i])
+                        d[i + 1] = h + s * (c * g + s * d[i])
 
                         # Accumulate transformation.
 
                         if not num_opt:  # overall factor 3 in 30-D
                             for k in range(n):  # (int k = 0; k < n; k++){
-                                h = V[k][i+1]
-                                V[k][i+1] = s * V[k][i] + c * h
+                                h = V[k][i + 1]
+                                V[k][i + 1] = s * V[k][i] + c * h
                                 V[k][i] = c * V[k][i] - s * h
                         else:  # about 20% faster in 10-D
-                            hh = V.T[i+1].copy()
+                            hh = V.T[i + 1].copy()
                             # hh[:] = V.T[i+1][:]
-                            V.T[i+1] = s * V.T[i] + c * hh
+                            V.T[i + 1] = s * V.T[i] + c * hh
                             V.T[i] = c * V.T[i] - s * hh
                             # V.T[i] *= c
                             # V.T[i] -= s * hh
@@ -1212,30 +1324,13 @@ def eig(C):
                     d[l] = c * p
 
                     # Check for convergence.
-                    if abs(e[l]) <= eps*tst1:
+                    if abs(e[l]) <= eps * tst1:
                         break
                 # } while (Math.abs(e[l]) > eps*tst1);
 
             d[l] += f
             e[l] = 0.0
 
-        # Sort eigenvalues and corresponding vectors.
-        if 11 < 3:
-            for i in range(n-1):  # (int i = 0; i < n-1; i++) {
-                k = i
-                p = d[i]
-                for j in range(i+1, n):  # (int j = i+1; j < n; j++) {
-                    if d[j] < p:  # NH find smallest k>i
-                        k = j
-                        p = d[j]
-
-                if k != i:
-                    d[k] = d[i]  # swap k and i
-                    d[i] = p
-                    for j in range(n):  # (int j = 0; j < n; j++) {
-                        p = V[j][i]
-                        V[j][i] = V[j][k]
-                        V[j][k] = p
     # tql2
     N = len(C[0])
     V = [C[i][:] for i in range(N)]
@@ -1244,6 +1339,7 @@ def eig(C):
     tred2(N, V, d, e)
     tql2(N, d, e, V)
     return d, V  # sorting of V-columns in place is non-trivial
+
 
 def test():
     """test of the `purecma` module, called ``if __name__ == "__main__"``.
@@ -1292,11 +1388,13 @@ def test():
 
     """
     import doctest
-    print('launching doctest...')
+
+    print("launching doctest...")
     print(doctest.testmod(report=True, verbose=0))  # module test
 
-#_____________________________________________________________________
-#_____________________________________________________________________
+
+# _____________________________________________________________________
+# _____________________________________________________________________
 #
 if __name__ == "__main__":
 

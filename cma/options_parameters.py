@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Parameters and Options for CMA-ES.
-"""
+"""Parameters and Options for CMA-ES."""
 from math import inf  # used to eval options
 import warnings as _warnings
 import numpy as np
@@ -11,135 +10,144 @@ from .logger import CMADataLogger
 from .recombination_weights import RecombinationWeights
 
 integer_std_lower_bound_factor1 = 1
-'''factor used in `integer_std_lower_bound` as multiplier to ``mueff/N``'''
+"""factor used in `integer_std_lower_bound` as multiplier to ``mueff/N``"""
 integer_std_lower_bound_factor2 = 1
-'''factor used in `integer_std_lower_bound` as multiplier to
-   `integer_std_lower_bound_limit_when_mu_is_large`'''
+"""factor used in `integer_std_lower_bound` as multiplier to
+   `integer_std_lower_bound_limit_when_mu_is_large`"""
 integer_std_lower_bound_limit = 0.2
 
 integer_active_limit_std = inf
-'''limit coordinate stds of solutions in C update, by default off, may go away'''
+"""limit coordinate stds of solutions in C update, by default off, may go away"""
 integer_active_limit_recombination_weight_condition = None
-'''None or True or a function float->bool, None -> limit only negative updates'''
+"""None or True or a function float->bool, None -> limit only negative updates"""
 
 default_restart_number_if_not_zero = 9
 
+
 def cma_default_options_(  # to get keyword completion back
     # the follow string arguments are evaluated if they do not contain "filename"
-    AdaptSigma='True  # or False or any CMAAdaptSigmaBase class e.g. CMAAdaptSigmaTPA, CMAAdaptSigmaCSA',
-    CMA_active='True  # negative update, conducted after the original update',
+    AdaptSigma="True  # or False or any CMAAdaptSigmaBase class e.g. CMAAdaptSigmaTPA, CMAAdaptSigmaCSA",
+    CMA_active="True  # negative update, conducted after the original update",
     #  CMA_activefac='1  # learning rate multiplier for active update',
-    CMA_active_injected='0  #v weight multiplier for negative weights of injected solutions',
-    CMA_cmean='1  # learning rate for the mean value',
+    CMA_active_injected="0  #v weight multiplier for negative weights of injected solutions",
+    CMA_cmean="1  # learning rate for the mean value",
     CMA_const_trace='False  # normalize trace, 1, True, "arithm", "geom", "aeig", "geig" are valid',
-    CMA_diagonal='0*100*N/popsize**0.5  # nb of iterations with diagonal covariance matrix,'\
-                                        ' True for always',  # TODO 4/ccov_separable?
-    CMA_diagonal_decoding='0  # learning rate multiplier for additional diagonal update',
-    CMA_eigenmethod='np.linalg.eigh  # or cma.utilities.math.eig or pygsl.eigen.eigenvectors',
+    CMA_diagonal="0*100*N/popsize**0.5  # nb of iterations with diagonal covariance matrix,"
+    " True for always",  # TODO 4/ccov_separable?
+    CMA_diagonal_decoding="0  # learning rate multiplier for additional diagonal update",
+    CMA_eigenmethod="np.linalg.eigh  # or cma.utilities.math.eig or pygsl.eigen.eigenvectors",
     CMA_elitist='False  #v or "initial" or True, elitism likely impairs global search performance',
-    CMA_injections_threshold_keep_len='1  #v keep length if Mahalanobis length is below the given relative threshold',
-    CMA_mirrors='popsize < 6  # values <0.5 are interpreted as fraction, values >1 as numbers (rounded),'\
-                              ' for `True` about 0.16 is used',
-    CMA_mirrormethod='2  # 0=unconditional, 1=selective, 2=selective with delay',
-    CMA_mu='None  # parents selection parameter, default is popsize // 2',
-    CMA_on='1  # multiplier for all covariance matrix updates',
+    CMA_injections_threshold_keep_len="1  #v keep length if Mahalanobis length is below the given relative threshold",
+    CMA_mirrors="popsize < 6  # values <0.5 are interpreted as fraction, values >1 as numbers (rounded),"
+    " for `True` about 0.16 is used",
+    CMA_mirrormethod="2  # 0=unconditional, 1=selective, 2=selective with delay",
+    CMA_mu="None  # parents selection parameter, default is popsize // 2",
+    CMA_on="1  # multiplier for all covariance matrix updates",
     # CMA_sample_on_sphere_surface='False  #v replaced with option randn=cma.utilities.math.randhss, all mutation vectors have the same length, currently (with new_sampling) not in effect',
-    CMA_sampler='None  # a class or instance that implements the interface of'\
-                       ' `cma.interfaces.StatisticalModelSamplerWithZeroMeanBaseClass`',
-    CMA_sampler_options='{}  # options passed to `CMA_sampler` class init as keyword arguments',
-    CMA_rankmu='1.0  # multiplier for rank-mu update learning rate of covariance matrix',
-    CMA_rankone='1.0  # multiplier for rank-one update learning rate of covariance matrix',
-    CMA_recombination_weights='None  # a list, see class RecombinationWeights, overwrites CMA_mu and popsize options',
+    CMA_sampler="None  # a class or instance that implements the interface of"
+    " `cma.interfaces.StatisticalModelSamplerWithZeroMeanBaseClass`",
+    CMA_sampler_options="{}  # options passed to `CMA_sampler` class init as keyword arguments",
+    CMA_rankmu="1.0  # multiplier for rank-mu update learning rate of covariance matrix",
+    CMA_rankone="1.0  # multiplier for rank-one update learning rate of covariance matrix",
+    CMA_recombination_weights="None  # a list, see class RecombinationWeights, overwrites CMA_mu and popsize options",
     CMA_dampsvec_fac='np.inf  # tentative and subject to changes, 0.5 would be a "default" damping for sigma vector update',
-    CMA_dampsvec_fade='0.1  # tentative fading out parameter for sigma vector update',
-    CMA_teststds='None  # factors for non-isotropic initial distr. of C, mainly for test purpose, see CMA_stds for production',
-    CMA_stds='None  # multipliers for sigma0 in each coordinate (not represented in C), or use `cma.ScaleCoordinates` instead',
+    CMA_dampsvec_fade="0.1  # tentative fading out parameter for sigma vector update",
+    CMA_teststds="None  # factors for non-isotropic initial distr. of C, mainly for test purpose, see CMA_stds for production",
+    CMA_stds="None  # multipliers for sigma0 in each coordinate (not represented in C), or use `cma.ScaleCoordinates` instead",
     # CMA_AII='False  # not yet tested',
-    CSA_dampfac='1  #v positive multiplier for step-size damping, 0.3 is close to optimal on the sphere',
-    CSA_damp_mueff_exponent='None  # exponent for mueff/N, by default 0.5 and 1 if CSA_squared,'
-        ' zero means no dependency of damping on mueff, useful with CSA_disregard_length option',
-    CSA_disregard_length='False  #v True is untested, also changes respective parameters',
-    CSA_clip_length_value='None  #v poorly tested, [0, 0] means const length N**0.5, [-1, 1] allows a variation of +- N/(N+2), etc.',
-    CSA_squared='False  #v use squared length for sigma-adaptation ',
-    CSA_invariant_path='False  #v pc is invariant and ps (default) is unbiased',
-    stall_sigma_change_on_divergence_iterations='False  #v number of iterations of median'
-        ' worsenings threshold at which the sigma change is stalled; the default may become 2',
-    BoundaryHandler='BoundTransform  # or BoundPenalty, unused when ``bounds in (None, [None, None])``',
-    bounds='[None, None]  # lower (=bounds[0]) and upper domain boundaries, each a scalar or a list/vector',
-     # , eval_parallel2='not in use {"processes": None, "timeout": 12, "is_feasible": lambda x: True} # distributes function calls to processes processes'
-     # 'callback='None  # function or list of functions called as callback(self) at the end of the iteration (end of tell)', # only necessary in fmin and optimize
-    conditioncov_alleviate='[1e8, 1e12]  # when to alleviate the condition in the coordinates and in main axes',
-    eval_final_mean='True  # evaluate the final mean, which is a favorite return candidate',
-    fixed_variables='None  # dictionary with index-value pairs like {0:1.1, 2:0.1} that are not optimized',
-    ftarget='-inf  #v target function value, minimization',
-    integer_variables='[]  # index list, invokes basic integer handling by setting minstd of integer variables if it was not given and by integer centering',
-    is_feasible='is_feasible  #v a function that computes feasibility, by default lambda x, f: f not in (None, np.nan)',
-    maxfevals='inf  #v maximum number of function evaluations',
-    maxiter='100 + 150 * (N+3)**2 // popsize**0.5  #v maximum number of iterations',
-    mean_shift_line_samples='False #v sample two new solutions colinear to previous mean shift',
-    mindx='0  #v minimal std in any arbitrary direction, cave interference with tol*',
-    minstd='0  #v minimal std (scalar or vector) in any coordinate direction, cave interference with tol*',
-    maxstd='None  #v maximal std (scalar or vector) in any coordinate direction',
-    maxstd_boundrange='1/3  # maximal std relative to bound_range per coordinate, overruled by maxstd',
-    pc_line_samples='False #v one line sample along the evolution path pc',
-    popsize='4 + 3 * np.log(N)  # population size, AKA lambda, int(popsize) is the number of new solution per iteration',
-    popsize_factor='1  # multiplier for popsize, convenience option to increase default popsize',
-    randn='np.random.randn  #v randn(lam, N) must return an np.array of shape (lam, N), see also cma.utilities.math.randhss',
-    scaling_of_variables='None  # deprecated, rather use fitness_transformations.ScaleCoordinates instead (or CMA_stds). WAS: Scale for each variable in that effective_sigma0 = sigma0*scaling. Internally the variables are divided by scaling_of_variables and sigma is unchanged, default is `np.ones(N)`',
-    seed='time  # random number seed for `numpy.random`; `None` and `0` equate to `time`,'\
-                ' `np.nan` means "do nothing", see also option "randn"',
-    signals_filename='cma_signals.in  # read versatile options from this file (use `None` or `""` for no file)'\
-                                      ' which contains a single options dict, e.g. ``{"timeout": 0}`` to stop,'\
-                                      ' string-values are evaluated, e.g. "np.inf" is valid',
-    termination_callback='[]  #v a function or list of functions returning True for termination, called in'\
-                              ' `stop` with `self` as argument, could be abused for side effects',
+    CSA_dampfac="1  #v positive multiplier for step-size damping, 0.3 is close to optimal on the sphere",
+    CSA_damp_mueff_exponent="None  # exponent for mueff/N, by default 0.5 and 1 if CSA_squared,"
+    " zero means no dependency of damping on mueff, useful with CSA_disregard_length option",
+    CSA_disregard_length="False  #v True is untested, also changes respective parameters",
+    CSA_clip_length_value="None  #v poorly tested, [0, 0] means const length N**0.5, [-1, 1] allows a variation of +- N/(N+2), etc.",
+    CSA_squared="False  #v use squared length for sigma-adaptation ",
+    CSA_invariant_path="False  #v pc is invariant and ps (default) is unbiased",
+    stall_sigma_change_on_divergence_iterations="False  #v number of iterations of median"
+    " worsenings threshold at which the sigma change is stalled; the default may become 2",
+    BoundaryHandler="BoundTransform  # or BoundPenalty, unused when ``bounds in (None, [None, None])``",
+    bounds="[None, None]  # lower (=bounds[0]) and upper domain boundaries, each a scalar or a list/vector",
+    # , eval_parallel2='not in use {"processes": None, "timeout": 12, "is_feasible": lambda x: True} # distributes function calls to processes processes'
+    # 'callback='None  # function or list of functions called as callback(self) at the end of the iteration (end of tell)', # only necessary in fmin and optimize
+    conditioncov_alleviate="[1e8, 1e12]  # when to alleviate the condition in the coordinates and in main axes",
+    eval_final_mean="True  # evaluate the final mean, which is a favorite return candidate",
+    fixed_variables="None  # dictionary with index-value pairs like {0:1.1, 2:0.1} that are not optimized",
+    ftarget="-inf  #v target function value, minimization",
+    integer_variables="[]  # index list, invokes basic integer handling by setting minstd of integer variables if it was not given and by integer centering",
+    is_feasible="is_feasible  #v a function that computes feasibility, by default lambda x, f: f not in (None, np.nan)",
+    maxfevals="inf  #v maximum number of function evaluations",
+    maxiter="100 + 150 * (N+3)**2 // popsize**0.5  #v maximum number of iterations",
+    mean_shift_line_samples="False #v sample two new solutions colinear to previous mean shift",
+    mindx="0  #v minimal std in any arbitrary direction, cave interference with tol*",
+    minstd="0  #v minimal std (scalar or vector) in any coordinate direction, cave interference with tol*",
+    maxstd="None  #v maximal std (scalar or vector) in any coordinate direction",
+    maxstd_boundrange="1/3  # maximal std relative to bound_range per coordinate, overruled by maxstd",
+    pc_line_samples="False #v one line sample along the evolution path pc",
+    popsize="4 + 3 * np.log(N)  # population size, AKA lambda, int(popsize) is the number of new solution per iteration",
+    popsize_factor="1  # multiplier for popsize, convenience option to increase default popsize",
+    randn="np.random.randn  #v randn(lam, N) must return an np.array of shape (lam, N), see also cma.utilities.math.randhss",
+    scaling_of_variables="None  # deprecated, rather use fitness_transformations.ScaleCoordinates instead (or CMA_stds). WAS: Scale for each variable in that effective_sigma0 = sigma0*scaling. Internally the variables are divided by scaling_of_variables and sigma is unchanged, default is `np.ones(N)`",
+    seed="time  # random number seed for `numpy.random`; `None` and `0` equate to `time`,"
+    ' `np.nan` means "do nothing", see also option "randn"',
+    signals_filename='cma_signals.in  # read versatile options from this file (use `None` or `""` for no file)'
+    ' which contains a single options dict, e.g. ``{"timeout": 0}`` to stop,'
+    ' string-values are evaluated, e.g. "np.inf" is valid',
+    termination_callback="[]  #v a function or list of functions returning True for termination, called in"
+    " `stop` with `self` as argument, could be abused for side effects",
     timeout='inf  #v stop if timeout seconds are exceeded, the string "2.5 * 60**2" evaluates to 2 hours and 30 minutes',
-    tolconditioncov='1e14  #v stop if the condition of the covariance matrix is above `tolconditioncov`',
-    tolfacupx='1e3  #v termination when step-size increases by tolfacupx (diverges). That is, the initial'\
-                     ' step-size was chosen far too small and better solutions were found far away from the initial solution x0',
-    tolupsigma='1e20  #v sigma/sigma0 > tolupsigma * max(eivenvals(C)**0.5) indicates "creeping behavior" with usually'\
-                       ' minor improvements',
-    tolflatfitness='1  #v iterations tolerated with flat fitness before termination',
-    tolfun='1e-11  #v termination criterion: tolerance in function value, quite useful',
-    tolfunhist='1e-12  #v termination criterion: tolerance in function value history',
-    tolfunrel='0  #v termination criterion: relative tolerance in function value:'\
-                   ' Delta f current < tolfunrel * (median0 - median_min)',
-    tolstagnation='int(100 + 100 * N**1.5 / popsize)  #v termination if no improvement over tolstagnation iterations',
-    tolxstagnation='[1e-9, 20, 0.1]  #v termination thresholds for Delta of [mean, iterations, iterations fraction], the latter two are summed; '
-                   'trigger termination if Dmean stays below the threshold over Diter iterations, '
-                   'pass `False` or a negative value to turn off tolxstagnation',
-    tolx='1e-11  #v termination criterion: tolerance in x-changes',
-    transformation='None  # deprecated, use a wrapper like those in cma.fitness_transformations instead.',
+    tolconditioncov="1e14  #v stop if the condition of the covariance matrix is above `tolconditioncov`",
+    tolfacupx="1e3  #v termination when step-size increases by tolfacupx (diverges). That is, the initial"
+    " step-size was chosen far too small and better solutions were found far away from the initial solution x0",
+    tolupsigma='1e20  #v sigma/sigma0 > tolupsigma * max(eivenvals(C)**0.5) indicates "creeping behavior" with usually'
+    " minor improvements",
+    tolflatfitness="1  #v iterations tolerated with flat fitness before termination",
+    tolfun="1e-11  #v termination criterion: tolerance in function value, quite useful",
+    tolfunhist="1e-12  #v termination criterion: tolerance in function value history",
+    tolfunrel="0  #v termination criterion: relative tolerance in function value:"
+    " Delta f current < tolfunrel * (median0 - median_min)",
+    tolstagnation="int(100 + 100 * N**1.5 / popsize)  #v termination if no improvement over tolstagnation iterations",
+    tolxstagnation="[1e-9, 20, 0.1]  #v termination thresholds for Delta of [mean, iterations, iterations fraction], the latter two are summed; "
+    "trigger termination if Dmean stays below the threshold over Diter iterations, "
+    "pass `False` or a negative value to turn off tolxstagnation",
+    tolx="1e-11  #v termination criterion: tolerance in x-changes",
+    transformation="None  # deprecated, use a wrapper like those in cma.fitness_transformations instead.",
     # WAS:
     # '''   t0, t1] are two mappings, t0 transforms solutions from CMA-representation to f-representation (tf_pheno),
     #       t1 is the (optional) back transformation, see class GenoPheno''',
-    typical_x='None  # deprecated, use `cma.fitness_transformations.Shifted` instead',
-    updatecovwait='None  #v number of iterations without distribution update, name is subject to future changes',  # TODO: rename: iterwaitupdatedistribution?
-    verbose='3  #v verbosity e.g. of initial/final message, -1 is very quiet, -9 maximally quiet, may not be fully implemented',
-    verb_append='0  # initial evaluation counter, if append, do not overwrite output files',
-    verb_disp='100  #v verbosity: display console output every verb_disp iteration',
-    verb_disp_overwrite='inf  #v start overwriting after given iteration',
-    verb_filenameprefix=CMADataLogger.default_prefix + '  # output path (folder) and filenames prefix',
-    verb_log='1  #v verbosity: write data to files every verb_log iteration, writing can be'\
-                  ' time critical on fast to evaluate functions',
-    verb_log_expensive='N * (N <= 50)  # allow to execute eigendecomposition for logging every verb_log_expensive iteration,'\
-                                       ' 0 or False for never',
-    verb_plot='0  #v in fmin2(): plot() is called every verb_plot iteration',
-    verb_time='True  #v output timings on console',
-    vv='{}  #? versatile set or dictionary for hacking purposes, value found in self.opts["vv"]'
-    ):
+    typical_x="None  # deprecated, use `cma.fitness_transformations.Shifted` instead",
+    updatecovwait="None  #v number of iterations without distribution update, name is subject to future changes",  # TODO: rename: iterwaitupdatedistribution?
+    verbose="3  #v verbosity e.g. of initial/final message, -1 is very quiet, -9 maximally quiet, may not be fully implemented",
+    verb_append="0  # initial evaluation counter, if append, do not overwrite output files",
+    verb_disp="100  #v verbosity: display console output every verb_disp iteration",
+    verb_disp_overwrite="inf  #v start overwriting after given iteration",
+    verb_filenameprefix=CMADataLogger.default_prefix
+    + "  # output path (folder) and filenames prefix",
+    verb_log="1  #v verbosity: write data to files every verb_log iteration, writing can be"
+    " time critical on fast to evaluate functions",
+    verb_log_expensive="N * (N <= 50)  # allow to execute eigendecomposition for logging every verb_log_expensive iteration,"
+    " 0 or False for never",
+    verb_plot="0  #v in fmin2(): plot() is called every verb_plot iteration",
+    verb_time="True  #v output timings on console",
+    vv='{}  #? versatile set or dictionary for hacking purposes, value found in self.opts["vv"]',
+):
     """use this function to get keyword completion for `CMAOptions`.
 
     ``cma.CMAOptions('substr')`` provides even substring search.
 
     returns default options as a `dict` (not a `cma.CMAOptions` `dict`).
     """
-    return dict(locals())  # is defined before and used by CMAOptions, so it can't return CMAOptions
+    return dict(
+        locals()
+    )  # is defined before and used by CMAOptions, so it can't return CMAOptions
 
-cma_default_options = cma_default_options_()  # will later be reassigned as CMAOptions(dict)
-cma_versatile_options = tuple(sorted(k for (k, v) in cma_default_options.items()
-                                     if v.find(' #v ') > 0))
+
+cma_default_options = (
+    cma_default_options_()
+)  # will later be reassigned as CMAOptions(dict)
+cma_versatile_options = tuple(
+    sorted(k for (k, v) in cma_default_options.items() if v.find(" #v ") > 0)
+)
 cma_allowed_options_keys = dict([s.lower(), s] for s in cma_default_options)
+
 
 def integer_std_lower_bound(N, mueff, N_int=None, binary=False):
     """can be reassigned/overwritten like a global "parameter setting"
@@ -153,10 +161,16 @@ def integer_std_lower_bound(N, mueff, N_int=None, binary=False):
     """
     ptarget = integer_lower_bound_target_probability(N, N_int if N_int else N)
     ppf = utilities.math.normal_ppf(ptarget / (1 if binary else 2))  # AKA sigma(ptail)
-    return min((integer_std_lower_bound_limit,
-                integer_std_lower_bound_factor1 * mueff / N,  # TODO: this is too small for 100D-leadingones, add (1+tanh(N_int / N)) / 2 ?
-                integer_std_lower_bound_factor2 * 0.5 / -ppf  # p=1/152.85 -> sigma=0.2
-               ))
+    return min(
+        (
+            integer_std_lower_bound_limit,
+            integer_std_lower_bound_factor1
+            * mueff
+            / N,  # TODO: this is too small for 100D-leadingones, add (1+tanh(N_int / N)) / 2 ?
+            integer_std_lower_bound_factor2 * 0.5 / -ppf,  # p=1/152.85 -> sigma=0.2
+        )
+    )
+
 
 def integer_lower_bound_target_probability(N, N_int):
     """target probability for an integer mutation assuming a centered mean
@@ -175,20 +189,22 @@ def integer_lower_bound_target_probability(N, N_int):
         raise ValueError("{0}=N_int > N = {1} is not a valid cases".format(N_int, N))
     return 2 / (2 + N + N_int)  # ad hoc setting, not validated
 
+
 def amend_restarts_parameter(restarts):
     """return a `dict` with ``'maxrestarts'`` and ``'maxfevals'`` as keys.
 
     `restarts` is a parameter to ``cma.fmin*``, see `cma.fmin`.
     """
     if restarts is True:
-        restarts = {'maxrestarts': default_restart_number_if_not_zero}
+        restarts = {"maxrestarts": default_restart_number_if_not_zero}
     elif not restarts:
-        restarts = {'maxrestarts': 0}
+        restarts = {"maxrestarts": 0}
     if not isinstance(restarts, dict):  # kinda assume that restart is an int
-        restarts = {'maxrestarts': restarts}
-    restarts.setdefault('maxrestarts', default_restart_number_if_not_zero)
-    restarts.setdefault('maxfevals', np.inf)
+        restarts = {"maxrestarts": restarts}
+    restarts.setdefault("maxrestarts", default_restart_number_if_not_zero)
+    restarts.setdefault("maxfevals", np.inf)
     return restarts
+
 
 def is_feasible(x, f):
     """default to check feasibility of f-values.
@@ -198,6 +214,7 @@ def is_feasible(x, f):
     :See also: CMAOptions, ``CMAOptions('feas')``.
     """
     return f is not None and not utils.is_nan(f)
+
 
 def safe_str(s):
     """return a string safe to `eval` or raise an exception.
@@ -211,21 +228,51 @@ def safe_str(s):
     themselves.
     """
     from . import purecma
-    return purecma.safe_str(s.split('#')[0],
-                            dict([k, k] for k in
-                                 ['True', 'False', 'None',
-                                 'N', 'dim', 'popsize', 'int', 'np.inf', 'inf',
-                                 'np.log', 'np.random.randn', 'time',
-                                 # 'cma_signals.in', 'outcmaes/',
-                                 'BoundTransform', 'is_feasible', 'np.linalg.eigh',
-                                 '{}', '/'])
-                            ).replace('N one', 'None'  # if purecma.safe_str could avoid substring substitution, this would not be necessary
-                                      ).replace('/  /', '//')
+
+    return (
+        purecma.safe_str(
+            s.split("#")[0],
+            dict(
+                [k, k]
+                for k in [
+                    "True",
+                    "False",
+                    "None",
+                    "N",
+                    "dim",
+                    "popsize",
+                    "int",
+                    "np.inf",
+                    "inf",
+                    "np.log",
+                    "np.random.randn",
+                    "time",
+                    # 'cma_signals.in', 'outcmaes/',
+                    "BoundTransform",
+                    "is_feasible",
+                    "np.linalg.eigh",
+                    "{}",
+                    "/",
+                ]
+            ),
+        )
+        .replace(
+            "N one",
+            "None",  # if purecma.safe_str could avoid substring substitution, this would not be necessary
+        )
+        .replace("/  /", "//")
+    )
+
 
 options_environment = {
-    name: getattr(boundary_handler, name) for name in
-       ['BoundNone', 'BoundPenalty', 'BoundTransform', #'AugmentedLagrangian'
-       ]}
+    name: getattr(boundary_handler, name)
+    for name in [
+        "BoundNone",
+        "BoundPenalty",
+        "BoundTransform",  #'AugmentedLagrangian'
+    ]
+}
+
 
 class CMAOptions(dict):
     """a dictionary with the available options and their default values
@@ -279,6 +326,7 @@ class CMAOptions(dict):
     :See also: `fmin2` (), `CMAEvolutionStrategy`, `CMAParameters`
 
     """
+
     _ps_for_pc = False
     _hsig = True  # False == never toggle hsig
     _stationary_sphere = False  # True or callable like lambda x: cma.ff.elli(x)**0.5
@@ -311,12 +359,14 @@ class CMAOptions(dict):
         """
         return cma_versatile_options
         # return tuple(sorted(i[0] for i in list(CMAOptions.defaults().items()) if i[1].find(' #v ') > 0))
+
     def check(self, options=None):
         """check for ambiguous keys and move attributes into dict"""
         self.check_values(options)
         self.check_attributes(options)
         self.check_values(options)
         return self
+
     def check_values(self, options=None):
         corrected_key = CMAOptions().corrected_key  # caveat: infinite recursion
         validated_keys = []
@@ -326,63 +376,62 @@ class CMAOptions(dict):
         for key in options:
             correct_key = corrected_key(key)
             if correct_key is None:
-                raise ValueError('%s is not a valid option.\n'
-                                 'Similar valid options are %s\n'
-                                 'Valid options are %s' %
-                                (key, str(list(cma_default_options(key))),
-                                 str(list(cma_default_options))))
+                raise ValueError(
+                    "%s is not a valid option.\n"
+                    "Similar valid options are %s\n"
+                    "Valid options are %s"
+                    % (
+                        key,
+                        str(list(cma_default_options(key))),
+                        str(list(cma_default_options)),
+                    )
+                )
             if correct_key in validated_keys:
                 if key == correct_key:
                     key = original_keys[validated_keys.index(key)]
-                raise ValueError("%s was not a unique key for %s option"
-                    % (key, correct_key))
+                raise ValueError(
+                    "%s was not a unique key for %s option" % (key, correct_key)
+                )
             validated_keys.append(correct_key)
             original_keys.append(key)
         return options
+
     def check_attributes(self, opts=None):
         """check for attributes and moves them into the dictionary"""
         if opts is None:
             opts = self
-        if 11 < 3:
-            if hasattr(opts, '__dict__'):
-                for key in opts.__dict__:
-                    if key not in self._attributes:
-                        raise ValueError("""
-                        Assign options with ``opts['%s']``
-                        instead of ``opts.%s``
-                        """ % (opts.__dict__.keys()[0],
-                               opts.__dict__.keys()[0]))
-            return self
-        else:
         # the problem with merge is that ``opts['ftarget'] = new_value``
         # would be overwritten by the old ``opts.ftarget``.
         # The solution here is to empty opts.__dict__ after the merge
-            if hasattr(opts, '__dict__'):
-                for key in list(opts.__dict__):
-                    if key in self._attributes:
-                        continue
-                    utils.print_warning(
-                        """
-        An option attribute has been merged into the dictionary,
-        thereby possibly overwriting the dictionary value, and the
-        attribute has been removed. Assign options with
+        if hasattr(opts, "__dict__"):
+            for key in list(opts.__dict__):
+                if key in self._attributes:
+                    continue
+                utils.print_warning(
+                    """
+                An option attribute has been merged into the dictionary,
+                thereby possibly overwriting the dictionary value, and the
+                attribute has been removed. Assign options with
 
-            ``opts['%s'] = value``  # dictionary assignment
+                    ``opts['%s'] = value``  # dictionary assignment
 
-        or use
+                or use
 
-            ``opts.set('%s', value)  # here isinstance(opts, CMAOptions)
+                    ``opts.set('%s', value)  # here isinstance(opts, CMAOptions)
 
-        instead of
+                instead of
 
-            ``opts.%s = value``  # attribute assignment
-                        """ % (key, key, key), 'check', 'CMAOptions')
+                    ``opts.%s = value``  # attribute assignment
+                                """
+                    % (key, key, key),
+                    "check",
+                    "CMAOptions",
+                )
 
-                    opts[key] = opts.__dict__[key]  # getattr(opts, key)
-                    delattr(opts, key)  # is that cosher?
-                    # delattr is necessary to prevent that the attribute
-                    # overwrites the dict entry later again
-            return opts
+                opts[key] = opts.__dict__[key]  # getattr(opts, key)
+                delattr(opts, key)  # is that cosher?
+                # delattr is necessary to prevent that the attribute overwrites the dict entry later again
+        return opts
 
     def __init__(self, s=None, **kwargs):
         """return an `CMAOptions` instance.
@@ -404,36 +453,43 @@ class CMAOptions(dict):
         # if not CMAOptions.defaults:  # this is different from self.defaults!!!
         #     CMAOptions.defaults = fmin([],[])
         if s is None and not kwargs:
-            super(CMAOptions, self).__init__(CMAOptions.defaults())  # dict.__init__(self, CMAOptions.defaults()) should be the same
+            super(CMAOptions, self).__init__(
+                CMAOptions.defaults()
+            )  # dict.__init__(self, CMAOptions.defaults()) should be the same
             # self = CMAOptions.defaults()
-            s = 'nocheck'
-        elif utils.is_str(s) and not s.startswith('unchecked'):
+            s = "nocheck"
+        elif utils.is_str(s) and not s.startswith("unchecked"):
             super(CMAOptions, self).__init__(CMAOptions().match(s))
             # we could return here
-            s = 'nocheck'
+            s = "nocheck"
         elif isinstance(s, dict):
             if kwargs:
-                raise ValueError('Dictionary argument must be the only argument')
+                raise ValueError("Dictionary argument must be the only argument")
             super(CMAOptions, self).__init__(s)
-        elif kwargs and (s is None or s.startswith('unchecked')):
+        elif kwargs and (s is None or s.startswith("unchecked")):
             super(CMAOptions, self).__init__(kwargs)
         else:
-            raise ValueError('The first argument must be a string or a dict or a keyword argument or `None`')
-        if not utils.is_str(s) or not s.startswith(('unchecked', 'nocheck')):
+            raise ValueError(
+                "The first argument must be a string or a dict or a keyword argument or `None`"
+            )
+        if not utils.is_str(s) or not s.startswith(("unchecked", "nocheck")):
             # was main offender
             self.check()  # caveat: infinite recursion
             for key in list(self.keys()):
                 correct_key = self.corrected_key(key)
                 if correct_key not in CMAOptions.defaults():
-                    utils.print_warning('invalid key ``' + str(key) +
-                                   '`` removed', '__init__', 'CMAOptions')
+                    utils.print_warning(
+                        "invalid key ``" + str(key) + "`` removed",
+                        "__init__",
+                        "CMAOptions",
+                    )
                     self.pop(key)
                 elif key != correct_key:
                     self[correct_key] = self.pop(key)
         # self.evaluated = False  # would become an option entry
         self._lock_setting = False
         self._attributes = self.__dict__.copy()  # are not valid keys
-        self._attributes['_attributes'] = len(self._attributes)
+        self._attributes["_attributes"] = len(self._attributes)
 
     def init(self, dict_or_str, val=None, warn=True):
         """initialize one or several options.
@@ -455,15 +511,16 @@ class CMAOptions(dict):
         self.check(dict_or_str)
         dic = dict_or_str
         if val is not None:
-            dic = {dict_or_str:val}
+            dic = {dict_or_str: val}
 
         for key, val in dic.items():
             key = self.corrected_key(key)
             if key not in CMAOptions.defaults():
                 # TODO: find a better solution?
                 if warn:
-                    print('Warning in cma.CMAOptions.init(): key ' +
-                        str(key) + ' ignored')
+                    print(
+                        "Warning in cma.CMAOptions.init(): key " + str(key) + " ignored"
+                    )
             else:
                 self[key] = val
 
@@ -490,17 +547,19 @@ class CMAOptions(dict):
 
         """
         if val is not None:  # dic is a key in this case
-            dic = {dic:val}  # compose a dictionary
+            dic = {dic: val}  # compose a dictionary
         for key_original, val in list(dict(dic).items()):
             key = self.corrected_key(key_original)
-            if (not self._lock_setting or
-                key in CMAOptions.versatile_options() or
-                force):
+            if not self._lock_setting or key in CMAOptions.versatile_options() or force:
                 self[key] = val
             else:
-                utils.print_warning('key ' + str(key_original) +
-                      ' ignored (not recognized as versatile)',
-                               'set', 'CMAOptions')
+                utils.print_warning(
+                    "key "
+                    + str(key_original)
+                    + " ignored (not recognized as versatile)",
+                    "set",
+                    "CMAOptions",
+                )
         return self  # to allow o = CMAOptions(o).set(new)
 
     def complement(self):
@@ -522,8 +581,11 @@ class CMAOptions(dict):
         list might be incomplete.
 
         """
-        return CMAOptions(dict(i for i in list(self.items())
-                                if i[0] in CMAOptions.versatile_options()))
+        return CMAOptions(
+            dict(
+                i for i in list(self.items()) if i[0] in CMAOptions.versatile_options()
+            )
+        )
 
     def __call__(self, key, default=None, loc=None):
         """evaluate and return the value of option `key` on the fly, or
@@ -551,9 +613,11 @@ class CMAOptions(dict):
             loc = self  # TODO: this hack is not so useful: popsize could be there, but N is missing
         try:
             if utils.is_str(val):
-                val = val.split('#')[0].strip()  # remove comments
-                if key.find('filename') < 0 and not (key == 'seed' and val.startswith('time')):
-                        # and key.find('mindx') < 0:
+                val = val.split("#")[0].strip()  # remove comments
+                if key.find("filename") < 0 and not (
+                    key == "seed" and val.startswith("time")
+                ):
+                    # and key.find('mindx') < 0:
                     val = eval(safe_str(val), global_env, loc)
             # invoke default
             # TODO: val in ... fails with array type, because it is applied element wise!
@@ -571,7 +635,7 @@ class CMAOptions(dict):
         starting sequence to identify the valid key, ``else None``
 
         """
-        if key.startswith('_'):
+        if key.startswith("_"):
             return key
         matching_keys = []
         key = key.lower()  # this was somewhat slow, so it is speed optimized now
@@ -614,18 +678,17 @@ class CMAOptions(dict):
         if defaults is None:
             defaults = cma_default_options_()
         # TODO: this needs rather the parameter N instead of loc
-        if 'N' in loc:  # TODO: __init__ of CMA can be simplified
-            popsize = self('popsize', defaults['popsize'], loc)
+        if "N" in loc:  # TODO: __init__ of CMA can be simplified
+            popsize = self("popsize", defaults["popsize"], loc)
             for k in list(self.keys()):
                 k = self.corrected_key(k)
-                if k.startswith('_'):
+                if k.startswith("_"):
                     continue
-                self.eval(k, defaults[k],
-                          {'N':loc['N'], 'popsize':popsize})
+                self.eval(k, defaults[k], {"N": loc["N"], "popsize": popsize})
         self._lock_setting = True
         return self
 
-    def match(self, s=''):
+    def match(self, s=""):
         """return all options that match, in the name or the description,
         with string `s`, case is disregarded.
 
@@ -636,38 +699,42 @@ class CMAOptions(dict):
         match = s.lower()
         res = {}
         for k in sorted(self):
-            s = str(k) + '=\'' + str(self[k]) + '\''
+            s = str(k) + "='" + str(self[k]) + "'"
             if match in s.lower():
                 res[k] = self[k]
         return CMAOptions(res)
 
     def amend_integer_options(self, dimension, inopts):
-        """amend options when integer variables are indicated
-        """
+        """amend options when integer variables are indicated"""
         try:
-            self['integer_variables'] = list(self['integer_variables'])
+            self["integer_variables"] = list(self["integer_variables"])
         except Exception:
-            if self['integer_variables']:
+            if self["integer_variables"]:
                 raise
-            self['integer_variables'] = []
+            self["integer_variables"] = []
 
-        if self['integer_variables']:
+        if self["integer_variables"]:
             self.amend_integer_variables(dimension)
-        if not self['integer_variables']:  # may have changed
+        if not self["integer_variables"]:  # may have changed
             return
 
-        if len(self['integer_variables']) > dimension:
-            raise ValueError("{0} = dimension < len(options['integer_variables']) = {1}"
-                             " is not a valid setting"
-                             .format(dimension, len(self['integer_variables'])))
+        if len(self["integer_variables"]) > dimension:
+            raise ValueError(
+                "{0} = dimension < len(options['integer_variables']) = {1}"
+                " is not a valid setting".format(
+                    dimension, len(self["integer_variables"])
+                )
+            )
 
-        if self['conditioncov_alleviate']:
-            if len(self['conditioncov_alleviate']) == 1:
-                self['conditioncov_alleviate'] = [self['conditioncov_alleviate'][0], 0]
-            self['conditioncov_alleviate'][-1] = 0
-        if inopts.get('popsize', None) in (None, cma_default_options['popsize']):
-            self['popsize'] = 6 + 3 * (np.log(dimension) +  # for the time being, why not sqrt(N)?
-                                       np.log(len(self['integer_variables']) + 0/2))
+        if self["conditioncov_alleviate"]:
+            if len(self["conditioncov_alleviate"]) == 1:
+                self["conditioncov_alleviate"] = [self["conditioncov_alleviate"][0], 0]
+            self["conditioncov_alleviate"][-1] = 0
+        if inopts.get("popsize", None) in (None, cma_default_options["popsize"]):
+            self["popsize"] = 6 + 3 * (
+                np.log(dimension)  # for the time being, why not sqrt(N)?
+                + np.log(len(self["integer_variables"]) + 0 / 2)
+            )
 
         # number of early tol-triggers before success on the 2D sphere with one int-variable:
         # code: es = cma.CMA([2, 0.1], 0.22, {'integer_variables': [0],...
@@ -681,42 +748,53 @@ class CMAOptions(dict):
         # tolflatfit=10:  4.7% (28)
         # tolflatfit=30:  0.5% (3)
 
-        if inopts.get('tolflatfitness', None) in (
-                    None, cma_default_options['tolflatfitness']):
-            self['tolflatfitness'] = 3 + 30 * (
-                len(self['integer_variables']) / dimension)
-        if len(self['integer_variables']) == dimension:
-            if inopts.get('tolfun', None) in (None, cma_default_options['tolfun']):
-                self['tolfun'] = 0
-            if inopts.get('tolfunhist', None) in (None, cma_default_options['tolfunhist']):
-                self['tolfunhist'] = 0
+        if inopts.get("tolflatfitness", None) in (
+            None,
+            cma_default_options["tolflatfitness"],
+        ):
+            self["tolflatfitness"] = 3 + 30 * (
+                len(self["integer_variables"]) / dimension
+            )
+        if len(self["integer_variables"]) == dimension:
+            if inopts.get("tolfun", None) in (None, cma_default_options["tolfun"]):
+                self["tolfun"] = 0
+            if inopts.get("tolfunhist", None) in (
+                None,
+                cma_default_options["tolfunhist"],
+            ):
+                self["tolfunhist"] = 0
 
     def amend_integer_variables(self, dimension):
         """removed fixed variables from the integer variable index values"""
-        if not self['fixed_variables']:
+        if not self["fixed_variables"]:
             return
         # CAVEAT: this has not be thoroughly tested
         # transform integer indices to genotype
         popped = []  # just for the record
-        self['_pheno_integer_variables'] = list(self['integer_variables'])
+        self["_pheno_integer_variables"] = list(self["integer_variables"])
         for i in reversed(range(dimension)):
-            if i in self['fixed_variables']:
-                self['integer_variables'].remove(i)
-                self['_pheno_integer_variables'].remove(i)
+            if i in self["fixed_variables"]:
+                self["integer_variables"].remove(i)
+                self["_pheno_integer_variables"].remove(i)
                 if 1 < 3:  # just for catching errors
                     popped.append(i)
-                    if i in self['integer_variables']:
-                        raise ValueError("index {0} appeared more than once in `'integer_variables'` option".format(i))
+                    if i in self["integer_variables"]:
+                        raise ValueError(
+                            "index {0} appeared more than once in `'integer_variables'` option".format(
+                                i
+                            )
+                        )
                 # reduce integer variable indices > i by one
-                for j, idx in enumerate(self['integer_variables']):
+                for j, idx in enumerate(self["integer_variables"]):
                     if idx > i:
-                        self['integer_variables'][j] -= 1
-        if self['verbose'] >= 0:
-            _warnings.warn("Handling integer variables when some variables are fixed."
-                        "\n  This code is poorly tested and may fail for negative indices."
-                        "\n  Variables {0} are fixed integer variables but are"
-                        " now dropped and discarded for integer handling."
-                        .format(popped))
+                        self["integer_variables"][j] -= 1
+        if self["verbose"] >= 0:
+            _warnings.warn(
+                "Handling integer variables when some variables are fixed."
+                "\n  This code is poorly tested and may fail for negative indices."
+                "\n  Variables {0} are fixed integer variables but are"
+                " now dropped and discarded for integer handling.".format(popped)
+            )
 
     def set_integer_min_std(self, N, mueff):
         """set lower std bounds for integer variables.
@@ -724,30 +802,32 @@ class CMAOptions(dict):
         Uses the above defined `integer_std_lower_bound` function which can
         be reassigned.
         """
-        if not self['integer_variables']:
+        if not self["integer_variables"]:
             return
         # 1) prepare minstd to be a vector
-        if np.isscalar(self['minstd']) and self['minstd'] == 0:
-            self['minstd'] = self['minstd'] * np.ones(N)
+        if np.isscalar(self["minstd"]) and self["minstd"] == 0:
+            self["minstd"] = self["minstd"] * np.ones(N)
         # 2) set minstd to 0.7 mueff / N, was: 1 / (2 Nint + 1)
         #    the setting 2 / (2 Nint + 1) already prevents convergence
-        if not np.isscalar(self['minstd']):
-            for i in self['integer_variables']:
+        if not np.isscalar(self["minstd"]):
+            for i in self["integer_variables"]:
                 if -N <= i < N:  # when i < 0, the index computes to N + i
-                    if self['minstd'][i] == 0:  # don't change negative values too
+                    if self["minstd"][i] == 0:  # don't change negative values too
                         # self['minstd'][i] = 1 / (2 * len(self['integer_variables']) + 1)
-                        self['minstd'][i] = integer_std_lower_bound(
-                                N, mueff, len(self['integer_variables']))
+                        self["minstd"][i] = integer_std_lower_bound(
+                            N, mueff, len(self["integer_variables"])
+                        )
                 else:
                     utils.print_warning(
                         "dropping integer index %d as it is not in range of dimension %d"
-                            % (i, N))
-                    self['integer_variables'].pop(self['integer_variables'].index(i))
+                        % (i, N)
+                    )
+                    self["integer_variables"].pop(self["integer_variables"].index(i))
 
     @property
     def to_namedtuple(self):
         """return options as const attributes of the returned object,
-        only useful for inspection. """
+        only useful for inspection."""
         raise NotImplementedError
         # return collections.namedtuple('CMAOptionsNamedTuple',
         #                               self.keys())(**self)
@@ -761,17 +841,19 @@ class CMAOptions(dict):
     def pprint(self, linebreak=80):
         for i in sorted(self.items()):
             s = str(i[0]) + "='" + str(i[1]) + "'"
-            a = s.split(' ')
+            a = s.split(" ")
 
             # print s in chunks
-            line = ''  # start entire to the left
+            line = ""  # start entire to the left
             while a:
                 while a and len(line) + len(a[0]) < linebreak:
-                    line += ' ' + a.pop(0)
+                    line += " " + a.pop(0)
                 print(line)
-                line = '        '  # tab for subsequent lines
+                line = "        "  # tab for subsequent lines
+
 
 cma_default_options = CMAOptions(cma_default_options_())
+
 
 class CMAParameters(object):
     """strategy parameters like population size and learning rates.
@@ -819,6 +901,7 @@ class CMAParameters(object):
     :See: `CMAOptions`, `CMAEvolutionStrategy`
 
     """
+
     def __init__(self, N, opts, ccovfac=1, verbose=True):
         """Compute strategy parameters, mainly depending on
         dimension and population size, by calling `set`
@@ -826,41 +909,43 @@ class CMAParameters(object):
         """
         self.N = N
         if ccovfac == 1:
-            ccovfac = opts['CMA_on']  # that's a hack
+            ccovfac = opts["CMA_on"]  # that's a hack
         self.popsize = None  # type: int
         """number of candidation solutions per iteration, AKA population size"""
         self.set(opts, ccovfac=ccovfac, verbose=verbose)
 
     def set(self, opts, popsize=None, ccovfac=1, verbose=True):
         """Compute strategy parameters as a function
-        of dimension and population size """
+        of dimension and population size"""
 
         limit_fac_cc = 4.0  # in future: 10**(1 - N**-0.33)?
 
         def conedf(df, mu, N):
             """used for computing separable learning rate"""
-            return 1. / (df + 2. * np.sqrt(df) + float(mu) / N)
+            return 1.0 / (df + 2.0 * np.sqrt(df) + float(mu) / N)
 
         def cmudf(df, mu, alphamu):
             """used for computing separable learning rate"""
-            return (alphamu + mu + 1. / mu - 2) / (df + 4 * np.sqrt(df) + mu / 2.)
+            return (alphamu + mu + 1.0 / mu - 2) / (df + 4 * np.sqrt(df) + mu / 2.0)
 
         sp = self  # mainly for historical reasons
         N = sp.N
         if popsize:
-            opts.evalall({'N':N, 'popsize':popsize})
+            opts.evalall({"N": N, "popsize": popsize})
         else:
-            popsize = opts.evalall({'N':N})['popsize']  # the default popsize is computed in CMAOptions()
-            popsize *= opts['popsize_factor']
+            popsize = opts.evalall({"N": N})[
+                "popsize"
+            ]  # the default popsize is computed in CMAOptions()
+            popsize *= opts["popsize_factor"]
         ## meta_parameters.lambda_exponent == 0.0
-        popsize = int(popsize + N** 0.0 - 1)
+        popsize = int(popsize + N**0.0 - 1)
 
         # set weights
-        if utils.is_(opts['CMA_recombination_weights']):
-            sp.weights = RecombinationWeights(opts['CMA_recombination_weights'])
+        if utils.is_(opts["CMA_recombination_weights"]):
+            sp.weights = RecombinationWeights(opts["CMA_recombination_weights"])
             popsize = len(sp.weights)
-        elif opts['CMA_mu']:
-            sp.weights = RecombinationWeights(2 * opts['CMA_mu'])
+        elif opts["CMA_mu"]:
+            sp.weights = RecombinationWeights(2 * opts["CMA_mu"])
             while len(sp.weights) < popsize:
                 sp.weights.insert(sp.weights.mu, 0.0)  # doesn't change mu or mueff
         else:  # default
@@ -869,12 +954,14 @@ class CMAParameters(object):
         sp.popsize = popsize
         sp.mu = sp.weights.mu  # not used anymore but for the record
 
-        if opts['CMA_mirrors'] < 0.5:
-            sp.lam_mirr = int(0.5 + opts['CMA_mirrors'] * popsize)
-        elif opts['CMA_mirrors'] > 1:
-            sp.lam_mirr = int(0.5 + opts['CMA_mirrors'])
+        if opts["CMA_mirrors"] < 0.5:
+            sp.lam_mirr = int(0.5 + opts["CMA_mirrors"] * popsize)
+        elif opts["CMA_mirrors"] > 1:
+            sp.lam_mirr = int(0.5 + opts["CMA_mirrors"])
         else:
-            sp.lam_mirr = int(0.5 + 0.16 * min((popsize, 2 * N + 2)) + 0.29)  # 0.158650... * popsize is optimal
+            sp.lam_mirr = int(
+                0.5 + 0.16 * min((popsize, 2 * N + 2)) + 0.29
+            )  # 0.158650... * popsize is optimal
             # lam = arange(2,22)
             # mirr = 0.16 + 0.29/lam
             # print(lam); print([int(0.5 + l) for l in mirr*lam])
@@ -883,12 +970,21 @@ class CMAParameters(object):
         # in principle we have mu_opt = popsize/2 + lam_mirr/2,
         # which means in particular weights should only be negative for q > 0.5+mirr_frac/2
         if sp.popsize // 2 > sp.popsize - 2 * sp.lam_mirr + 1:
-            utils.print_warning("pairwise selection is not implemented, therefore " +
-                  " mu = %d > %d = %d - 2*%d + 1 = popsize - 2*mirr + 1 can produce a bias" % (
-                    sp.popsize // 2, sp.popsize - 2 * sp.lam_mirr + 1, sp.popsize, sp.lam_mirr))
+            utils.print_warning(
+                "pairwise selection is not implemented, therefore "
+                + " mu = %d > %d = %d - 2*%d + 1 = popsize - 2*mirr + 1 can produce a bias"
+                % (
+                    sp.popsize // 2,
+                    sp.popsize - 2 * sp.lam_mirr + 1,
+                    sp.popsize,
+                    sp.lam_mirr,
+                )
+            )
         if sp.lam_mirr > sp.popsize // 2:
-            raise ValueError("fraction of mirrors in the population as read from option CMA_mirrors cannot be larger 0.5, " +
-                         "theoretically optimal is 0.159")
+            raise ValueError(
+                "fraction of mirrors in the population as read from option CMA_mirrors cannot be larger 0.5, "
+                + "theoretically optimal is 0.159"
+            )
 
         mueff = sp.weights.mueff
 
@@ -896,63 +992,77 @@ class CMAParameters(object):
         ## meta_parameters.cc_exponent == 1.0
         b = 1.0
         ## meta_parameters.cc_multiplier == 1.0
-        sp.cc = 1.0 * (limit_fac_cc + mueff / N)**b / \
-                (N**b + (limit_fac_cc + 2 * mueff / N)**b)
-        sp.cc_sep = (1 + 1 / N + mueff / N) / \
-                    (N**0.5 + 1 / N + 2 * mueff / N)
-        if hasattr(opts['vv'], '__getitem__'):
-            if 'sweep_ccov1' in opts['vv']:
-                sp.cc = 1.0 * (4 + mueff / N)**0.5 / ((N + 4)**0.5 +
-                                                    (2 * mueff / N)**0.5)
-            if 'sweep_cc' in opts['vv']:  # caveat: cc2 and cc_sep
-                sp.cc = opts['vv']['sweep_cc']
+        sp.cc = (
+            1.0
+            * (limit_fac_cc + mueff / N) ** b
+            / (N**b + (limit_fac_cc + 2 * mueff / N) ** b)
+        )
+        sp.cc_sep = (1 + 1 / N + mueff / N) / (N**0.5 + 1 / N + 2 * mueff / N)
+        if hasattr(opts["vv"], "__getitem__"):
+            if "sweep_ccov1" in opts["vv"]:
+                sp.cc = (
+                    1.0
+                    * (4 + mueff / N) ** 0.5
+                    / ((N + 4) ** 0.5 + (2 * mueff / N) ** 0.5)
+                )
+            if "sweep_cc" in opts["vv"]:  # caveat: cc2 and cc_sep
+                sp.cc = opts["vv"]["sweep_cc"]
                 sp.cc_sep = sp.cc
-                print('cc is %f' % sp.cc)
+                print("cc is %f" % sp.cc)
 
         ## meta_parameters.c1_multiplier == 1.0
-        sp.c1 = (1.0 * opts['CMA_rankone'] * ccovfac * min(1, sp.popsize / 6) *
-                 ## meta_parameters.c1_exponent == 2.0
-                 2 / ((N + 1.3)** 2.0 + mueff))
-                 # 2 / ((N + 1.3)** 1.5 + mueff))  # TODO
-                 # 2 / ((N + 1.3)** 1.75 + mueff))  # TODO
+        sp.c1 = (
+            1.0
+            * opts["CMA_rankone"]
+            * ccovfac
+            * min(1, sp.popsize / 6)
+            *
+            ## meta_parameters.c1_exponent == 2.0
+            2
+            / ((N + 1.3) ** 2.0 + mueff)
+        )
+        # 2 / ((N + 1.3)** 1.5 + mueff))  # TODO
+        # 2 / ((N + 1.3)** 1.75 + mueff))  # TODO
         # caveat: sp.c1 is NOT used in the update but for computing cmu
         # c1 given by interfaces.StatisticalModelSampler...parameters() equals to
         #    min((1, lam / 6)) * 2 / ((N + 1.3)**2 + mueff)
-        sp.c1_sep = opts['CMA_rankone'] * ccovfac * conedf(N, mueff, N)
-        if 11 < 3:
-            sp.c1 = 0.
-            print('c1 is zero')
-        if utils.is_(opts['CMA_rankmu']):  # also empty
+        sp.c1_sep = opts["CMA_rankone"] * ccovfac * conedf(N, mueff, N)
+        if utils.is_(opts["CMA_rankmu"]):  # also empty
             ## meta_parameters.cmu_multiplier == 2.0
             alphacov = 2.0
             ## meta_parameters.rankmu_offset == 0.25
             rankmu_offset = 0.25
             # the influence of rankmu_offset in [0, 1] on performance is
             # barely visible
-            if hasattr(opts['vv'], '__getitem__') and 'sweep_rankmu_offset' in opts['vv']:
-                rankmu_offset = opts['vv']['sweep_rankmu_offset']
+            if (
+                hasattr(opts["vv"], "__getitem__")
+                and "sweep_rankmu_offset" in opts["vv"]
+            ):
+                rankmu_offset = opts["vv"]["sweep_rankmu_offset"]
                 print("rankmu_offset = %.2f" % rankmu_offset)
             mu = mueff
-            sp.cmu = min(1 - sp.c1,  # TODO: this is a bug if sp.c1 is smaller than
-                                     # interface...parameters()['c1']
-                         opts['CMA_rankmu'] * ccovfac * alphacov *
-                         # simpler nominator would be: (mu - 0.75)
-                         (rankmu_offset + mu + 1 / mu - 2) /
-                         ## meta_parameters.cmu_exponent == 2.0
-                         ((N + 2)** 2.0 + alphacov * mu / 2))
-                         # ((N + 2)** 1.5 + alphacov * mu / 2))  # TODO
-                         # ((N + 2)** 1.75 + alphacov * mu / 2))  # TODO
-                         # cmu -> 1 for mu -> N**2 * (2 / alphacov)
-            if hasattr(opts['vv'], '__getitem__') and 'sweep_ccov' in opts['vv']:
-                sp.cmu = opts['vv']['sweep_ccov']
+            sp.cmu = min(
+                1 - sp.c1,  # TODO: this is a bug if sp.c1 is smaller than
+                # interface...parameters()['c1']
+                opts["CMA_rankmu"] * ccovfac * alphacov *
+                # simpler nominator would be: (mu - 0.75)
+                (rankmu_offset + mu + 1 / mu - 2) /
+                ## meta_parameters.cmu_exponent == 2.0
+                ((N + 2) ** 2.0 + alphacov * mu / 2),
+            )
+            # ((N + 2)** 1.5 + alphacov * mu / 2))  # TODO
+            # ((N + 2)** 1.75 + alphacov * mu / 2))  # TODO
+            # cmu -> 1 for mu -> N**2 * (2 / alphacov)
+            if hasattr(opts["vv"], "__getitem__") and "sweep_ccov" in opts["vv"]:
+                sp.cmu = opts["vv"]["sweep_ccov"]
             sp.cmu_sep = min(1 - sp.c1_sep, ccovfac * cmudf(N, mueff, rankmu_offset))
         else:
             sp.cmu = sp.cmu_sep = 0
-        if hasattr(opts['vv'], '__getitem__') and 'sweep_ccov1' in opts['vv']:
-            sp.c1 = opts['vv']['sweep_ccov1']
+        if hasattr(opts["vv"], "__getitem__") and "sweep_ccov1" in opts["vv"]:
+            sp.c1 = opts["vv"]["sweep_ccov1"]
 
         if any(w < 0 for w in sp.weights):
-            if opts['CMA_active'] and opts['CMA_on'] and opts['CMA_rankmu']:
+            if opts["CMA_active"] and opts["CMA_on"] and opts["CMA_rankmu"]:
                 sp.weights.finalize_negative_weights(N, sp.c1, sp.cmu)
                 # this is re-done using self.sm.parameters()['c1']...
             else:
@@ -962,34 +1072,20 @@ class CMAParameters(object):
         sp.CMA_on = sp.c1 + sp.cmu > 0
         # print(sp.c1_sep / sp.cc_sep)
 
-        if not opts['CMA_on'] and opts['CMA_on'] not in (None, [], (), ''):
+        if not opts["CMA_on"] and opts["CMA_on"] not in (None, [], (), ""):
             sp.CMA_on = False
             # sp.c1 = sp.cmu = sp.c1_sep = sp.cmu_sep = 0
         # line 3480
-        if 11 < 3:
-            # this is worse than damps = 1 + sp.cs for the (1,10000)-ES on 40D parabolic ridge
-            sp.damps = 0.3 + 2 * max([mueff / sp.popsize, ((mueff - 1) / (N + 1))**0.5 - 1]) + sp.cs
-        if 11 < 3:
-            # this does not work for lambda = 4*N^2 on the parabolic ridge
-            sp.damps = opts['CSA_dampfac'] * (2 - 0 * sp.lam_mirr / sp.popsize) * mueff / sp.popsize + 0.3 + sp.cs
-            # nicer future setting
-            print('damps =', sp.damps)
-        if 11 < 3:
-            sp.damps = 10 * sp.damps  # 1e99 # (1 + 2*max(0,sqrt((mueff-1)/(N+1))-1)) + sp.cs;
-            # sp.damps = 20 # 1. + 20 * sp.cs**-1  # 1e99 # (1 + 2*max(0,sqrt((mueff-1)/(N+1))-1)) + sp.cs;
-            print('damps is %f' % (sp.damps))
 
-        sp.cmean = np.asarray(opts['CMA_cmean'], dtype=float)
+        sp.cmean = np.asarray(opts["CMA_cmean"], dtype=float)
         # sp.kappa = 1  # 4-D, lam=16, rank1, kappa < 4 does not influence convergence rate
-                        # in larger dim it does, 15-D with defaults, kappa=8 factor 2
-        if 11 < 3 and np.any(sp.cmean != 1):
-            print('  cmean = ' + str(sp.cmean))
+        # in larger dim it does, 15-D with defaults, kappa=8 factor 2
 
         if verbose:
             if not sp.CMA_on:
-                print('covariance matrix adaptation turned off')
-            if opts['CMA_mu'] is not None:
-                print('mu = %d' % (sp.weights.mu))
+                print("covariance matrix adaptation turned off")
+            if opts["CMA_mu"] is not None:
+                print("mu = %d" % (sp.weights.mu))
 
         # return self  # the constructor returns itself
 
@@ -1023,6 +1119,7 @@ class MetaParameters(object):
     module import.
 
     """
+
     def __init__(self):
         """assign settings to be used"""
         self.sigma0 = None  ## [~0.01, ~10]  # no default available
@@ -1033,7 +1130,7 @@ class MetaParameters(object):
         self.cmu_multiplier = 2.0  ## [~1e-4, ~30] l  # zero means off
         self.CMA_active = 1.0  ## [~1e-4, ~10] l  # 0 means off, was CMA_activefac
         self.cc_multiplier = 1.0  ## [~0.01, ~20] l
-        self.cs_multiplier = 1.0 ## [~0.01, ~10] l  # learning rate for cs
+        self.cs_multiplier = 1.0  ## [~0.01, ~10] l  # learning rate for cs
         self.CSA_dampfac = 1.0  ## [~0.01, ~10]
         self.CMA_dampsvec_fac = None  ## [~0.01, ~100]  # def=np.inf or 0.5, not clear whether this is a log parameter
         self.CMA_dampsvec_fade = 0.1  ## [0, ~2]
@@ -1043,7 +1140,9 @@ class MetaParameters(object):
         self.cmu_exponent = 2.0  ## [~1.25, 2]
         self.cact_exponent = 1.5  ## [~1.25, 2]
         self.cc_exponent = 1.0  ## [~0.25, ~1.25]
-        self.cs_exponent = 1.0  ## [~0.25, ~1.75]  # upper bound depends on CSA_clip_length_value
+        self.cs_exponent = (
+            1.0  ## [~0.25, ~1.75]  # upper bound depends on CSA_clip_length_value
+        )
 
         # selection related parameters
         self.lambda_exponent = 0.0  ## [0, ~2.5]  # usually <= 2, used by adding N**lambda_exponent to popsize-1
@@ -1062,7 +1161,9 @@ class MetaParameters(object):
         self.CSA_clip_length_value = None  ## [0, ~20]  # None reflects inf
 
         # noise handling
-        self.noise_reeval_multiplier = 1.0  ## [0.2, 4]  # usually 2 offspring are reevaluated
+        self.noise_reeval_multiplier = (
+            1.0  ## [0.2, 4]  # usually 2 offspring are reevaluated
+        )
         self.noise_choose_reeval = 1  ## [1, 3] i  # which ones to reevaluate
         self.noise_theta = 0.5  ## [~0.05, ~0.9]
         self.noise_alphasigma = 2.0  ## [0, 10]

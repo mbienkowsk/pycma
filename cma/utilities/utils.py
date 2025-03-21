@@ -1,14 +1,18 @@
 # -*- coding: utf-8 -*-
 """various utilities not related to optimization"""
-from __future__ import (absolute_import, division, print_function,
-                        )  #unicode_literals, with_statement)
+from __future__ import (
+    absolute_import,
+    division,
+    print_function,
+)  # unicode_literals, with_statement)
 import os, sys, time
 import warnings
 import ast  # ast.literal_eval is safe eval
 import numpy as np
 import collections  # defaultdict since Python 2.5, OrderedDict since Python 3.1
 from .python3for2 import abc, range
-del absolute_import, division, print_function  #, unicode_literals, with_statement
+
+del absolute_import, division, print_function  # , unicode_literals, with_statement
 
 PY2 = sys.version_info[0] == 2
 global_verbosity = 1
@@ -25,10 +29,14 @@ global_verbosity = 1
 # and False for NaN, and an exception for array([0,1]), see also
 # http://google-styleguide.googlecode.com/svn/trunk/pyguide.html#True/False_evaluations
 
+
 def seval(s, *args, **kwargs):
-    if any(substring in s for substring in ("import", "sys.", "sys ", "shutil", "val(")):
+    if any(
+        substring in s for substring in ("import", "sys.", "sys ", "shutil", "val(")
+    ):
         raise ValueError('"%s" seems unsafe to evaluate' % s)
     return eval(s, *args, **kwargs)
+
 
 def is_(var):
     """intuitive handling of variable truth value also for `numpy` arrays.
@@ -50,19 +58,31 @@ def is_(var):
         return True if len(var) else False
     except TypeError:  # cases None, False, 0
         return True if var else False
+
+
 def is_one(var):
     """return True if var == 1 or ones vector"""
-    try: return np.all(np.asarray(var) == 1)
-    except: return var == 1  # should never happen!?
+    try:
+        return np.all(np.asarray(var) == 1)
+    except:
+        return var == 1  # should never happen!?
+
+
 def is_not(var):
     """see `is_`"""
     return not is_(var)
+
+
 def is_any(var_list):
     """return ``any(is_(v) for v in var_list)``"""
     return any(is_(var) for var in var_list)
+
+
 def is_all(var_list):
     """return ``all(is_(v) for v in var_list)``"""
     return all(is_(var) for var in var_list)
+
+
 def is_str(var):
     """`bytes` (in Python 3) also fit the bill.
 
@@ -75,12 +95,15 @@ def is_str(var):
     if PY2:
         types_ = types_ + (basestring, unicode)  # == types.StrTypes
     return any(isinstance(var, type_) for type_ in types_)
+
+
 def is_nan(var):
     """return ``np.isnan(var)`` or `False` if `var` is not numeric"""
     try:
         return np.isnan(var)
     except TypeError:
         return False
+
 
 def is_vector_list(x):
     """make an educated guess whether ``x`` is a list of vectors.
@@ -93,6 +116,7 @@ def is_vector_list(x):
         return np.isscalar(x[0][0])
     except:
         return False
+
 
 def as_vector_list(X):
     """a tool to handle a vector or a list of vectors in the same way,
@@ -132,13 +156,15 @@ def as_vector_list(X):
     if is_vector_list(X):
         return X, lambda x: x
     else:
-        return [X], lambda *args: args[0][0] if len(args) == 1 else (
-                                    arg[0] for arg in args)
+        return [X], lambda *args: (
+            args[0][0] if len(args) == 1 else (arg[0] for arg in args)
+        )
+
 
 def rglen(ar):
-    """return generator ``range(len(.))`` with shortcut ``rglen(.)``
-    """
+    """return generator ``range(len(.))`` with shortcut ``rglen(.)``"""
     return range(len(ar))
+
 
 def recycled(vec, dim=None, as_=None):
     """return ``vec`` with the last element recycled to ``dim`` if
@@ -163,13 +189,17 @@ def recycled(vec, dim=None, as_=None):
     elif dim > len_:
         return np.asarray(list(vec) + (dim - len_) * [vec[-1]])
 
+
 def argsort(a, reverse=False):
     """return index list to get `a` in order, ie
     ``a[argsort(a)[i]] == sorted(a)[i]``, which leads to unexpected
     results with `np.nan` entries, because any comparison with `np.nan`
     is `False`.
     """
-    return sorted(range(len(a)), key=a.__getitem__, reverse=reverse)  # a.__getitem__(i) is a[i]
+    return sorted(
+        range(len(a)), key=a.__getitem__, reverse=reverse
+    )  # a.__getitem__(i) is a[i]
+
 
 def ranks(a, reverse=False):
     """return ranks of entries starting with zero based on Pythons `sorted`.
@@ -177,8 +207,11 @@ def ranks(a, reverse=False):
     This leads to unreasonable results with `np.nan` values.
     """
     idx = argsort(a)
-    return [len(idx) - 1 - idx.index(i) if reverse else idx.index(i)
-            for i in range(len(idx))]
+    return [
+        len(idx) - 1 - idx.index(i) if reverse else idx.index(i)
+        for i in range(len(idx))
+    ]
+
 
 def zero_values_indices(diffs):
     """generate increasing index pairs ``(i, j)`` with ``all(diffs[i:j] == 0)``
@@ -211,29 +244,40 @@ def zero_values_indices(diffs):
         else:
             i += 1
 
+
 def pprint(to_be_printed):
     """nicely formated print"""
     try:
         import pprint as pp
+
         # generate an instance PrettyPrinter
         # pp.PrettyPrinter().pprint(to_be_printed)
         pp.pprint(to_be_printed)
     except ImportError:
         if isinstance(to_be_printed, dict):
-            print('{')
+            print("{")
             for k, v in to_be_printed.items():
-                print("'" + k + "'" if str(k) == k else k,
-                      ': ',
-                      "'" + v + "'" if str(v) == v else v,
-                      sep="")
-            print('}')
+                print(
+                    "'" + k + "'" if str(k) == k else k,
+                    ": ",
+                    "'" + v + "'" if str(v) == v else v,
+                    sep="",
+                )
+            print("}")
         else:
-            print('could not import pprint module, appling regular print')
+            print("could not import pprint module, appling regular print")
             print(to_be_printed)
 
-def num2str(val, significant_digits=2, force_rounding=False,
-            max_predecimal_digits=5, max_postdecimal_leading_zeros=1,
-            remove_trailing_zeros=True, desired_length=None):
+
+def num2str(
+    val,
+    significant_digits=2,
+    force_rounding=False,
+    max_predecimal_digits=5,
+    max_postdecimal_leading_zeros=1,
+    remove_trailing_zeros=True,
+    desired_length=None,
+):
     """returns the shortest string representation.
 
     Generally, display either ``significant_digits`` digits or its true
@@ -254,17 +298,16 @@ def num2str(val, significant_digits=2, force_rounding=False,
 
     """
     if val == 0:
-        return '0'
+        return "0"
     if not significant_digits > 0:
-        raise ValueError('need significant_digits=%s > 0'
-                         % str(significant_digits))
+        raise ValueError("need significant_digits=%s > 0" % str(significant_digits))
     is_negative = val < 0
     original_value = val
     val = float(np.abs(val))
 
     order_of_magnitude = int(np.floor(np.log10(val)))
     # number of digits before decimal point == order_of_magnitude + 1
-    fac = 10**(significant_digits - 1 - order_of_magnitude)
+    fac = 10 ** (significant_digits - 1 - order_of_magnitude)
     val_rounded = np.round(fac * val) / fac
 
     # the strategy is now to produce two string representations
@@ -276,64 +319,77 @@ def num2str(val, significant_digits=2, force_rounding=False,
     else:
         s = str(val_rounded)
         idx1 = 0  # first non-zero index
-        while idx1 < len(s) and s[idx1] in ('-', '0', '.'):
+        while idx1 < len(s) and s[idx1] in ("-", "0", "."):
             idx1 += 1  # find index of first significant number
-        idx2 = idx1 + significant_digits + (s.find('.') > idx1)
+        idx2 = idx1 + significant_digits + (s.find(".") > idx1)
         # print(val, val_rounded, s, len(s), idx1, idx2)
         # pad some zeros in the end, in case
         if val != val_rounded:
             if len(s) < idx2:
-                s += '0' * (idx2 - len(s))
+                s += "0" * (idx2 - len(s))
         # remove zeros from the end, in case
         if val == val_rounded and remove_trailing_zeros:
-            while s[-1] == '0':
+            while s[-1] == "0":
                 s = s[0:-1]
-        if s[-1] == '.':
+        if s[-1] == ".":
             s = s[0:-1]
-    s_float = ('-' if is_negative else '') + s
+    s_float = ("-" if is_negative else "") + s
 
     # now the second, %e format
-    s = ('%.' + str(significant_digits - 1) + 'e') % val
-    if ast.literal_eval(s) == val and s.find('.') > 0:  # ast.literal_eval was: seval
-        while s.find('0e') > 0:
-            s = s.replace('0e', 'e')
-    s = s.replace('.e', 'e')
-    s = s.replace('e+', 'e')
-    while s.find('e0') > 0:
-        s = s.replace('e0', 'e')
-    while s.find('e-0') > 0:
-        s = s.replace('e-0', 'e-')
-    if s[-1] == 'e':
+    s = ("%." + str(significant_digits - 1) + "e") % val
+    if ast.literal_eval(s) == val and s.find(".") > 0:  # ast.literal_eval was: seval
+        while s.find("0e") > 0:
+            s = s.replace("0e", "e")
+    s = s.replace(".e", "e")
+    s = s.replace("e+", "e")
+    while s.find("e0") > 0:
+        s = s.replace("e0", "e")
+    while s.find("e-0") > 0:
+        s = s.replace("e-0", "e-")
+    if s[-1] == "e":
         s = s[:-1]
-    s_exp = ('-' if is_negative else '') + s
+    s_exp = ("-" if is_negative else "") + s
 
     # print(s_float, s_exp)
 
     # now return the better (most of the time the shorter) representation
-    if (len(s_exp) < len(s_float) or
-        s_float.find('0.' + '0' * (max_postdecimal_leading_zeros + 1)) > -1 or
-        np.abs(val_rounded) >= 10**(max_predecimal_digits + 1)
-        ):
+    if (
+        len(s_exp) < len(s_float)
+        or s_float.find("0." + "0" * (max_postdecimal_leading_zeros + 1)) > -1
+        or np.abs(val_rounded) >= 10 ** (max_predecimal_digits + 1)
+    ):
         s_ret = s_exp
     else:
         s_ret = s_float
     if desired_length:
-        s_old = ''
+        s_old = ""
         while len(s_ret) < desired_length and len(s_old) < len(s_ret):
             s_old = s_ret
-            s_ret = num2str(original_value,
-                       significant_digits + desired_length - len(s_ret),
-                       force_rounding,
-                       max_predecimal_digits,
-                       max_postdecimal_leading_zeros,
-                       remove_trailing_zeros,
-                       desired_length=None)
+            s_ret = num2str(
+                original_value,
+                significant_digits + desired_length - len(s_ret),
+                force_rounding,
+                max_predecimal_digits,
+                max_postdecimal_leading_zeros,
+                remove_trailing_zeros,
+                desired_length=None,
+            )
     return s_ret
+
 
 # todo: this should rather be a class instance
 warnings_counter = collections.defaultdict(int)
-def print_warning(msg, method_name=None, class_name=None, iteration=None,
-                   verbose=None, maxwarns=None, **kwargs_for_warn):
+
+
+def print_warning(
+    msg,
+    method_name=None,
+    class_name=None,
+    iteration=None,
+    verbose=None,
+    maxwarns=None,
+    **kwargs_for_warn
+):
     """Poor man's maxwarns: msg must match exactly"""
     if verbose is None:
         verbose = global_verbosity
@@ -342,15 +398,22 @@ def print_warning(msg, method_name=None, class_name=None, iteration=None,
         if warnings_counter[msg] > maxwarns:
             return
         if warnings_counter[msg] == maxwarns:
-            msg += ' (further warnings will be suppressed)'
+            msg += " (further warnings will be suppressed)"
     if verbose >= -2:
-        warnings.warn(msg + ' (time={}'.format(time.asctime()[4:]) +
-              (' class=%s' % str(class_name) if class_name else '') +
-              (' method=%s' % str(method_name) if method_name else '') +
-              (' iteration=%s' % str(iteration) if iteration else '') +
-              ')', **kwargs_for_warn)
-def format_warning(msg, method_name=None, class_name=None, iteration=None,
-                   maxwarns=None):
+        warnings.warn(
+            msg
+            + " (time={}".format(time.asctime()[4:])
+            + (" class=%s" % str(class_name) if class_name else "")
+            + (" method=%s" % str(method_name) if method_name else "")
+            + (" iteration=%s" % str(iteration) if iteration else "")
+            + ")",
+            **kwargs_for_warn
+        )
+
+
+def format_warning(
+    msg, method_name=None, class_name=None, iteration=None, maxwarns=None
+):
     """Poor man's maxwarns: msg must match exactly.
 
     Copy-paste of `print_warning` to get better location information than
@@ -365,37 +428,47 @@ def format_warning(msg, method_name=None, class_name=None, iteration=None,
     if maxwarns is not None:  # we could do the counting irrespectively?
         warnings_counter[msg] += 1
         if warnings_counter[msg] > maxwarns:
-            return ''
+            return ""
         if warnings_counter[msg] == maxwarns:
-            msg += ' (further warnings will be suppressed)'
-    return (msg + ' (time={}'.format(time.asctime()[4:]) +
-            (' class=%s' % str(class_name) if class_name else '') +
-            (' method=%s' % str(method_name) if method_name else '') +
-            (' iteration=%s' % str(iteration) if iteration else '') +
-            ')')
-def print_message(msg, method_name=None, class_name=None, iteration=None,
-                   verbose=None):
+            msg += " (further warnings will be suppressed)"
+    return (
+        msg
+        + " (time={}".format(time.asctime()[4:])
+        + (" class=%s" % str(class_name) if class_name else "")
+        + (" method=%s" % str(method_name) if method_name else "")
+        + (" iteration=%s" % str(iteration) if iteration else "")
+        + ")"
+    )
+
+
+def print_message(msg, method_name=None, class_name=None, iteration=None, verbose=None):
     if verbose is None:
         verbose = global_verbosity
     if verbose >= 0:
-        print('NOTE (module=cma' + # __name__ +
-              (', class=' + str(class_name) if class_name else '') +
-              (', method=' + str(method_name) if method_name else '') +
-              (', iteration=' + str(iteration) if iteration is not None else '') +
-              '): ', msg)
+        print(
+            "NOTE (module=cma"  # __name__ +
+            + (", class=" + str(class_name) if class_name else "")
+            + (", method=" + str(method_name) if method_name else "")
+            + (", iteration=" + str(iteration) if iteration is not None else "")
+            + "): ",
+            msg,
+        )
+
+
 def format_message(msg, es=None, spaces=6):
     """put line breaks and trailing white spaces"""
     if es:
-        msg = msg + ' [iteration={0}]'.format(es.countiter)
+        msg = msg + " [iteration={0}]".format(es.countiter)
     j = 0
     s = "\n\n" + spaces * " "
     for i, c in enumerate(msg):
         s = s + c
-        if c == '\n' or i > j + 70 and c in [' ']:
-            s = s + '\n' + spaces * ' '
+        if c == "\n" or i > j + 70 and c in [" "]:
+            s = s + "\n" + spaces * " "
             j = i
-    s = s + '\n'
+    s = s + "\n"
     return s
+
 
 def set_attributes_from_dict(self, dict_, initial_params_dict_name=None):
     """assign, for example, all arguments given to an ``__init__``
@@ -431,30 +504,38 @@ def set_attributes_from_dict(self, dict_, initial_params_dict_name=None):
     """
     if initial_params_dict_name:
         setattr(self, initial_params_dict_name, dict_.copy())
-        getattr(self, initial_params_dict_name).pop('self', None)
+        getattr(self, initial_params_dict_name).pop("self", None)
     for key, val in dict_.items():
-        if key != 'self':  # avoid self referencing
+        if key != "self":  # avoid self referencing
             setattr(self, key, val)
 
-def download_file(url, target_dir='.', target_name=None):
+
+def download_file(url, target_dir=".", target_name=None):
     import urllib2
+
     if target_name is None:
         target_name = url.split(os.path.sep)[-1]
-    with open(os.path.join(target_dir, target_name), 'wb') as f:
+    with open(os.path.join(target_dir, target_name), "wb") as f:
         f.write(urllib2.urlopen(url).read())
 
-def extract_targz(tarname, filename=None, target_dir='.'):
+
+def extract_targz(tarname, filename=None, target_dir="."):
     """filename must be a valid path in the tar"""
     import tarfile
-    tmp_dir = '._tmp_'
+
+    tmp_dir = "._tmp_"
     if filename is None:
         tarfile.TarFile.gzopen(tarname).extractall(target_dir)
     else:
         import shutil
+
         tarfile.TarFile.gzopen(tarname).extractall(tmp_dir)
-        shutil.copy2(os.path.join(tmp_dir, filename),
-                     os.path.join(target_dir, filename.split(os.path.sep)[-1]))
+        shutil.copy2(
+            os.path.join(tmp_dir, filename),
+            os.path.join(target_dir, filename.split(os.path.sep)[-1]),
+        )
         shutil.rmtree(tmp_dir)
+
 
 class BlancClass(object):
     """blanc container class to have a collection of attributes.
@@ -472,6 +553,7 @@ class BlancClass(object):
 
     """
 
+
 class DictClass(dict):
     """A class wrapped over `dict` to use class .-notation.
 
@@ -487,11 +569,14 @@ class DictClass(dict):
     >>> assert len(as_class) == 6
 
     """
+
     def __init__(self, *args, **kwargs):
         dict.__init__(self, *args, **kwargs)
         self.__dict__ = self
+
     def __dir__(self):
         return self.keys()
+
 
 class DerivedDictBase(abc.MutableMapping):
     """for conveniently adding methods/functionality to a dictionary.
@@ -504,6 +589,7 @@ class DerivedDictBase(abc.MutableMapping):
     it depends on `MutableMapping`.
 
     """
+
     def __init__(self, *args, **kwargs):
         # abc.MutableMapping.__init__(self)
         super(DerivedDictBase, self).__init__()
@@ -514,20 +600,27 @@ class DerivedDictBase(abc.MutableMapping):
         except Exception:
             self.data = dict()
             self.data.update(dict(*args, **kwargs))
+
     def __len__(self):
         return len(self.data)
+
     def __contains__(self, key):
         return key in self.data
+
     def __iter__(self):
         return iter(self.data)
+
     def __setitem__(self, key, value):
         """define ``self[key] = value``"""
         self.data[key] = value
+
     def __getitem__(self, key):
         """define access ``self[key]``"""
         return self.data[key]
+
     def __delitem__(self, key):
         del self.data[key]
+
 
 class SolutionDict(DerivedDictBase):
     """dictionary with computation of an hash key.
@@ -557,11 +650,13 @@ class SolutionDict(DerivedDictBase):
     TODO: iteration key is used to clean up without error management
 
     """
+
     def __init__(self, *args, **kwargs):
         # DerivedDictBase.__init__(self, *args, **kwargs)
         super(SolutionDict, self).__init__(*args, **kwargs)
         self.data_with_same_key = {}
         self.last_iteration = 0
+
     def key(self, x):
         """compute key of ``x``"""
         if isinstance(x, int):
@@ -581,8 +676,10 @@ class SolutionDict(DerivedDictBase):
             except TypeError:
                 # Data type must be immutable, transform into tuple first
                 return hash(tuple(x))
+
     def __contains__(self, key):
         return super(SolutionDict, self).__contains__(self.key(key))
+
     def __setitem__(self, key, value):
         """define ``self[key] = value``"""
         key = self.key(key)
@@ -591,9 +688,11 @@ class SolutionDict(DerivedDictBase):
         elif key in self.data:
             self.data_with_same_key[key] = [self.data[key]]
         self.data[key] = value
+
     def __getitem__(self, key):  # 50% of time of
         """define access ``self[key]``"""
         return self.data[self.key(key)]
+
     def __delitem__(self, key):
         """remove only most current key-entry of list with same keys"""
         key = self.key(key)
@@ -604,6 +703,7 @@ class SolutionDict(DerivedDictBase):
                 self.data[key] = self.data_with_same_key[key].pop(-1)
         elif key in self.data:
             del self.data[key]
+
     def truncate(self, max_len, min_iter=None):
         """truncate to ``max_len/2`` when ``len(self) > max_len``.
 
@@ -618,21 +718,23 @@ class SolutionDict(DerivedDictBase):
                 self.data.popitem(last=False)
         else:  # previous code
             for k in list(self.keys()):
-                if self[k]['iteration'] < min_iter:
+                if self[k]["iteration"] < min_iter:
                     del self[k]
                     # deletes one item with k as key, better delete all?
                 if len(self) < max_len / 2:  # new code
                     break
 
+
 class DataDict(collections.defaultdict):
     """a dictionary of lists (of data)"""
-    def __init__(self, filename='_data.py'):
+
+    def __init__(self, filename="_data.py"):
         self.filename = filename
         collections.defaultdict.__init__(self, list)
         if os.path.exists(self.filename):
             self.load()
         else:
-            print('creating file {0}'.format(self.filename))
+            print("creating file {0}".format(self.filename))
             self.save()
 
     def load(self):
@@ -643,7 +745,7 @@ class DataDict(collections.defaultdict):
         To load cleanly without merge use `clear` + `load` or the class
         constructor with a new `filename`.
         """
-        with open(self.filename, 'rt') as f:
+        with open(self.filename, "rt") as f:
             dd = ast.literal_eval(f.read())
         self.update(dd)
         return self
@@ -655,7 +757,7 @@ class DataDict(collections.defaultdict):
         return self
 
     def save(self):
-        with open(self.filename, 'wt') as f:
+        with open(self.filename, "wt") as f:
             f.write(repr(dict(self)))
 
     def clear(self):
@@ -663,13 +765,21 @@ class DataDict(collections.defaultdict):
             del self[key]
         return self
 
+
 class ExclusionListOfVectors(list):
     """For delayed selective mirrored sampling"""
+
     def __contains__(self, vec):
         for v in self:
-            if 1 - 1e-9 < np.dot(v, vec) / (sum(np.asarray(v)**2) * sum(np.asarray(vec)**2))**0.5 < 1 + 1e-9:
+            if (
+                1 - 1e-9
+                < np.dot(v, vec)
+                / (sum(np.asarray(v) ** 2) * sum(np.asarray(vec) ** 2)) ** 0.5
+                < 1 + 1e-9
+            ):
                 return True
         return False
+
 
 class ElapsedWCTime(object):
     """measure elapsed cumulative time while not paused and elapsed time
@@ -689,10 +799,12 @@ class ElapsedWCTime(object):
     Details: the attribute ``paused`` equals to the time [s] when paused or
     to zero when the timer is running.
     """
+
     def __init__(self, time_offset=0):
         """add time offset in seconds and start timing"""
         self._time_offset = time_offset
         self.reset()
+
     def reset(self):
         """reset to initial state and start timing"""
         self.cum_time = self._time_offset
@@ -700,16 +812,18 @@ class ElapsedWCTime(object):
         """time when paused or 0 while running"""
         self.last_tic = time.time()
         return self
+
     def pause(self):
         """pause timer, resume with `tic`"""
         if not self.paused:
             self.paused = time.time()
         return self
+
     def __call__(self):
-        """depreciated return elapsed time (for backwards compatibility)
-        """
+        """depreciated return elapsed time (for backwards compatibility)"""
         raise DeprecationWarning()
         return self.elapsed
+
     @property
     def tic(self):
         """return `toc` and restart tic/toc last-round-timer.
@@ -719,10 +833,14 @@ class ElapsedWCTime(object):
         return_ = self.toc
         if self.paused:
             if self.paused < self.last_tic:
-                print_warning("""paused time=%f < last_tic=%f, which
+                print_warning(
+                    """paused time=%f < last_tic=%f, which
                 should never happen, but has been observed at least once.
-                """ % (self.paused, self.last_tic),
-                              "tic", "ElapsedWCTime")
+                """
+                    % (self.paused, self.last_tic),
+                    "tic",
+                    "ElapsedWCTime",
+                )
                 self.paused = self.last_tic
             self.cum_time += self.paused - self.last_tic
         else:
@@ -730,18 +848,21 @@ class ElapsedWCTime(object):
         self.paused = 0
         self.last_tic = time.time()
         return return_
+
     @property
     def elapsed(self):
         """elapsed time while not paused, measured since creation or last
         `reset`
         """
         return self.cum_time + self.toc
+
     @property
     def toc(self):
         """return elapsed time since last `tic`"""
         if self.paused:
             return self.paused - self.last_tic
         return time.time() - self.last_tic
+
 
 class TimingWrapper(object):
     """wrap a timer around a callable.
@@ -750,15 +871,18 @@ class TimingWrapper(object):
     class instance, in particular the overall elapsed time in
     ``timer.elapsed`` and the time of the last call in ``timer.toc``.
     """
+
     def __init__(self, callable_):
         """``callable_`` is the `callable` to be timed when called"""
         self._callable = callable_
         self.timer = ElapsedWCTime().pause()
+
     def __call__(self, *args, **kwargs):
         self.timer.tic
         res = self._callable(*args, **kwargs)
         self.timer.pause()
         return res
+
 
 class DictFromTagsInString(dict):
     """read from a string or file all key-value pairs within all
@@ -786,14 +910,17 @@ class DictFromTagsInString(dict):
 
     When the same key appears several times, its value is overwritten.
     """
+
     def __init__(self, *args, **kwargs):
         """for input args see `update` method."""
         super(DictFromTagsInString, self).__init__()  # not necessary!?
         self.tag_string = "python"
         if is_(args) or is_(kwargs):
             self.update(*args, **kwargs)
-    def update(self, string_=None, filename=None, file_=None, dict_=None,
-               tag_string=None):
+
+    def update(
+        self, string_=None, filename=None, file_=None, dict_=None, tag_string=None
+    ):
         """only one of the first four arguments is accepted at a time,
         return ``self``.
 
@@ -801,38 +928,44 @@ class DictFromTagsInString(dict):
         to be parsed for tags.
         """
 
-        args = 4 - ((string_ is None) + (filename is None) +
-               (file_ is None) + (dict_ is None))
+        args = 4 - (
+            (string_ is None) + (filename is None) + (file_ is None) + (dict_ is None)
+        )
         if not args:
-            raise ValueError('''nothing to update''')
+            raise ValueError("""nothing to update""")
         if args > 1:
-            raise ValueError('''
+            raise ValueError(
+                """
                 use either string_ or filename or file_ or dict_ as
-                input, but not several of them''')
+                input, but not several of them"""
+            )
         if tag_string is not None:
             self.tag_string = tag_string
         if filename is not None:
-            string_ = open(filename, 'r').read()
+            string_ = open(filename, "r").read()
         elif file_ is not None:
             string_ = file_.read()
         elif dict_ is not None:
-            super(DictFromTagsInString,
-                  self).update(dict_)
+            super(DictFromTagsInString, self).update(dict_)
             return self
-        super(DictFromTagsInString,
-              self).update(self._eval_python_tag(string_))
+        super(DictFromTagsInString, self).update(self._eval_python_tag(string_))
         return self
+
     @property
     def as_python_tag(self):
         return self._start + repr(dict(self)) + self._end
+
     def __repr__(self):
         return self.as_python_tag
+
     @property
     def _start(self):
-        return '<' + self.tag_string + '>'
+        return "<" + self.tag_string + ">"
+
     @property
     def _end(self):
-        return '</' + self.tag_string + '>'
+        return "</" + self.tag_string + ">"
+
     def _eval_python_tag(self, str_):
         """read [key, value] pairs from a `list` or a `dict` within all
         ``<self.tag_str>`` tags in ``str_`` and return a `dict`.
@@ -862,16 +995,20 @@ class DictFromTagsInString(dict):
             start = str_lower.find(self._start, start + 1)
         return values
 
+
 class MoreToWrite(list):
     """make sure that this list does not grow unbounded"""
+
     def __init__(self):
         self._lenhist = []
+
     def check(self):
         self._lenhist += [len(self)]
         if len(self._lenhist) > 3:
             if all(np.diff(self._lenhist) > 0):
                 del self[:]
             self._lenhist = []
+
 
 class DefaultSettings(object):
     """resembling somewhat `types.SimpleNamespace` from Python >=3.3
@@ -917,6 +1054,7 @@ class DefaultSettings(object):
     True
 
     """
+
     def __init__(self, params, number_of_params, obj):
         """Overwrite default settings in case.
 
@@ -927,19 +1065,26 @@ class DefaultSettings(object):
         self.inparams = dict(params)
         self._number_of_params = number_of_params
         self.obj = obj
-        self.inparams.pop('self', None)
+        self.inparams.pop("self", None)
         self._set_from_defaults()
         self._set_from_input()
 
     def __str__(self):
         # return str(self.__dict__)
-        return ("{" + '\n'.join(r"%s: %s" % (str(k), str(v)) for k, v in self.items()) + "}")
+        return (
+            "{" + "\n".join(r"%s: %s" % (str(k), str(v)) for k, v in self.items()) + "}"
+        )
 
     def _set_from_defaults(self):
         """defaults are taken from the class attributes"""
-        self.__dict__.update(((key, val)
-                              for (key, val) in type(self).__dict__.items()
-                              if not key.startswith('_')))
+        self.__dict__.update(
+            (
+                (key, val)
+                for (key, val) in type(self).__dict__.items()
+                if not key.startswith("_")
+            )
+        )
+
     def _set_from_input(self):
         """Only existing parameters/attributes and non-None values are set.
 
@@ -957,11 +1102,20 @@ class DefaultSettings(object):
             elif self.inparams[key] is not None:
                 setattr(self, key, self.inparams[key])
         if len(self.inparams) != self._number_of_params:
-            warnings.warn("%s: %d parameters desired; remaining: %s; discarded: %s "
-                          % (str(type(self)), self._number_of_params, str(self.inparams),
-                             str(discarded)))
+            warnings.warn(
+                "%s: %d parameters desired; remaining: %s; discarded: %s "
+                % (
+                    str(type(self)),
+                    self._number_of_params,
+                    str(self.inparams),
+                    str(discarded),
+                )
+            )
         # self.__dict__.update(self.inparams)
-        delattr(self, 'obj')  # prevent circular reference self.obj.settings where settings is self
+        delattr(
+            self, "obj"
+        )  # prevent circular reference self.obj.settings where settings is self
+
 
 class ListOfCallables(list):
     """A `list` of callables that can be called like a single `callable`.
@@ -985,6 +1139,7 @@ class ListOfCallables(list):
             res = [callable_or_list_of_callables(args)]
 
     """
+
     def __init__(self, callback):
         """return a list of callables as a `callable` itself.
 
@@ -1008,25 +1163,24 @@ class ListOfCallables(list):
         try:
             for c in callback:
                 if not callable(c):
-                    raise ValueError("""callback argument %s is not
-                        callable""" % str(c))
+                    raise ValueError(
+                        """callback argument %s is not
+                        callable"""
+                        % str(c)
+                    )
         except TypeError:
-            raise ValueError("""callback argument must be a `callable` or
+            raise ValueError(
+                """callback argument must be a `callable` or
                 an iterable (e.g. a list) of callables, after some
-                processing it was %s""" % str(callback))
+                processing it was %s"""
+                % str(callback)
+            )
         list.__init__(self, callback)
 
     def __call__(self, *args, **kwargs):
-        """call each element of the list and return a list of return values
-        """
-        res = [c(*args, **kwargs) for c in self]
-        if 11 < 3 and self._input_callback is None:
-            assert len(res) == 0
-            return None
-        if 11 < 3 and callable(self._input_callback):
-            assert len(self) == len(res) == 1
-            return res[0]  # for backwards compatibility when a single callable is used
-        return res
+        """call each element of the list and return a list of return values"""
+        return [c(*args, **kwargs) for c in self]
+
 
 class ShowInFolder(object):  # was ShowInline
     """callable instance to save and show figures from `matplotlib`.
@@ -1050,8 +1204,10 @@ class ShowInFolder(object):  # was ShowInline
     Under macOS, `open_path` invokes Finder where the figures can be
     conveniently explored and compared using the space and up/down keys.
     """
-    folder_prefix = 'figs-'
-    def __init__(self, name, type='pdf', dpi=400, **kwargs):
+
+    folder_prefix = "figs-"
+
+    def __init__(self, name, type="pdf", dpi=400, **kwargs):
         """save figures to folder ``'figs-' + name``.
 
         pdf are smaller than png and not pixeliated. The type can be
@@ -1059,38 +1215,50 @@ class ShowInFolder(object):  # was ShowInline
 
         `dpi` and `kwargs` are passed to `plt.savefig`.
         """
-        self.path =  ShowInFolder.folder_prefix + name
+        self.path = ShowInFolder.folder_prefix + name
         """output folder path"""
         self.type = type
         self.format_string = "{0:04d}."
         """filename format string"""
         self.kwargs = kwargs
         """kwargs to ``plt.savefig``"""
-        self.kwargs['dpi'] = dpi
+        self.kwargs["dpi"] = dpi
         self.number = 0
         """number of saved figures or id of last saved figure"""
         if os.path.exists(self.path):
-            ls = sorted(n for n in os.listdir(self.path)
-                    if n[0] in [str(i) for i in range(10)] and n.endswith('.' + type))
+            ls = sorted(
+                n
+                for n in os.listdir(self.path)
+                if n[0] in [str(i) for i in range(10)] and n.endswith("." + type)
+            )
             if ls:
-                self.number = int(ls[-1].split('.' + type)[0])
+                self.number = int(ls[-1].split("." + type)[0])
 
-    def __call__(self,
-                 keep=True, show_in_notebook=False,
-                 show_in_folder=True, save=True,
-                 width_save=None, width_show=None,
-                 name=None):
+    def __call__(
+        self,
+        keep=True,
+        show_in_notebook=False,
+        show_in_folder=True,
+        save=True,
+        width_save=None,
+        width_show=None,
+        name=None,
+    ):
         """save current figure and show folder and/or image in notebook.
 
         Uses `IPython.display.Image` to show the image in the notebook.
         """
         if save:
             from matplotlib import pyplot as plt
+
             if not os.path.exists(self.path):
                 if self.number != 0:
-                    warnings.warn(self.path + " not found"
-                                  " even though number={0} (which should ever happen)."
-                                  .format(self.number))
+                    warnings.warn(
+                        self.path + " not found"
+                        " even though number={0} (which should ever happen).".format(
+                            self.number
+                        )
+                    )
                 os.mkdir(self.path)
             if name is None:
                 self.number += 1
@@ -1098,10 +1266,11 @@ class ShowInFolder(object):  # was ShowInline
             name = os.path.join(self.path, name)
             if width_save:
                 old_size = plt.gcf().get_size_inches()  # keep aspect ratio
-                plt.gcf().set_size_inches(width_save,
-                                          width_save * old_size[1] / old_size[0])
+                plt.gcf().set_size_inches(
+                    width_save, width_save * old_size[1] / old_size[0]
+                )
             # plt.tight_layout()
-            plt.savefig(name, bbox_inches='tight', **self.kwargs)
+            plt.savefig(name, bbox_inches="tight", **self.kwargs)
             self._last_saved = name
             keep or plt.close()
         show_in_folder and self.open_path()
@@ -1113,9 +1282,10 @@ class ShowInFolder(object):  # was ShowInline
         """display last saved figure in notebook (doesn't work with pdf)"""
         try:
             import IPython.display
+
             return IPython.display.Image(self._last_saved, width=width, **kwargs_show)
         except:
             print("{0} could not be displayed".format(self._last_saved))
 
     def open_path(self):
-        os.system('open ' + self.path)
+        os.system("open " + self.path)

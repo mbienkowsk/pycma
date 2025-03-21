@@ -1,19 +1,22 @@
-"""Utility classes and functionalities loosely related to optimization
-"""
-from __future__ import absolute_import, division, print_function  #, unicode_literals
+"""Utility classes and functionalities loosely related to optimization"""
+
+from __future__ import absolute_import, division, print_function  # , unicode_literals
 import sys
 import warnings
 import numpy as np
 from multiprocessing import Pool as ProcessingPool
+
 # from pathos.multiprocessing import ProcessingPool
 from .utilities.utils import BlancClass as _BlancClass
 from .utilities.math import Mh
+
 # from .transformations import BoundTransform  # only to make it visible but gives circular import anyways
 from .utilities.python3for2 import range
-del absolute_import, division, print_function  #, unicode_literals
 
-def semilogy_signed(x=None, y=None, yoffset=0, minabsy=None, iabscissa=1,
-                    **kwargs):
+del absolute_import, division, print_function  # , unicode_literals
+
+
+def semilogy_signed(x=None, y=None, yoffset=0, minabsy=None, iabscissa=1, **kwargs):
     """signed semilogy plot.
 
     ``plt.yscale('symlog', linthreshy=min(abs(data[data != 0])))`` should
@@ -36,45 +39,55 @@ def semilogy_signed(x=None, y=None, yoffset=0, minabsy=None, iabscissa=1,
 
     """
     from matplotlib import pyplot as plt
+
     if y is None:
         if x is not None:
             x, y = y, x
         else:
             try:
                 from . import logger
-                xy = logger.CMADataLogger().load().data['xmean']
+
+                xy = logger.CMADataLogger().load().data["xmean"]
             except:
-                xy = np.loadtxt('outcmaesxmean.dat', comments=('%',))
+                xy = np.loadtxt("outcmaesxmean.dat", comments=("%",))
             x, y = xy[:, iabscissa], xy[:, 5:]
     y = np.array(y, copy=True)  # not always necessary, but sometimes?
     if yoffset not in (None, 0):
         try:
             y -= yoffset
         except:  # recycle last entry of yoffset
-            yoffset = [yoffset[i if i < len(yoffset) else -1] for i in range(y.shape[1])]
+            yoffset = [
+                yoffset[i if i < len(yoffset) else -1] for i in range(y.shape[1])
+            ]
             y -= yoffset
-    elif 11 < 3:
-        pass  # TODO: subtract optionally last x!? (not smallest which is done anyways)
-    min_log = np.log10(minabsy) if minabsy else \
-              int(np.floor(np.min(np.log10(np.abs(y[y!=0])))))
+    min_log = (
+        np.log10(minabsy)
+        if minabsy
+        else int(np.floor(np.min(np.log10(np.abs(y[y != 0])))))
+    )
 
     idx_zeros = np.abs(y) < 10**min_log
     idx_pos = y >= 10**min_log
-    idx_neg = y <= -10**min_log
+    idx_neg = y <= -(10**min_log)
     y[idx_pos] = np.log10(y[idx_pos]) - min_log
     y[idx_neg] = -(np.log10(-y[idx_neg]) - min_log)
     y[idx_zeros] = 0
 
     if x is None:
         x = range(1, y.shape[0] + 1)
-    if 'labels' in kwargs:
-        kwargs_labels = kwargs.pop('labels')
+    if "labels" in kwargs:
+        kwargs_labels = kwargs.pop("labels")
         for i, yi in enumerate(np.asarray(y).T):
-            plt.plot(x, yi, label=kwargs_labels[i] if i < len(kwargs_labels) else None, **kwargs)
+            plt.plot(
+                x,
+                yi,
+                label=kwargs_labels[i] if i < len(kwargs_labels) else None,
+                **kwargs
+            )
         plt.legend(framealpha=0.1)  # more opaque than not
     else:
         plt.plot(x, y, **kwargs)
-        if 'label' in kwargs:
+        if "label" in kwargs:
             plt.legend(framealpha=0.1)  # more opaque than not
 
     # the remainder is changing y-labels
@@ -86,16 +99,17 @@ def semilogy_signed(x=None, y=None, yoffset=0, minabsy=None, iabscissa=1,
             s = (r"$-10^{%.2f}$") % (-val + min_log)
         elif val == 0:
             s = (r"$\pm10^{%.2f}$") % min_log
-        if '.' in s:
-            while s[-3] == '0':  # remove trailing zeros
+        if "." in s:
+            while s[-3] == "0":  # remove trailing zeros
                 s = s[:-3] + s[-2:]
-            if s[-3] == '.':  # remove trailing dot
+            if s[-3] == ".":  # remove trailing dot
                 s = s[:-3] + s[-2:]
         labels += [s]
         ticks += [val]
     ax.set_yticks(ticks)
     ax.set_yticklabels(labels)
     plt.grid(True)
+
 
 def contour_data(fct, x_range, y_range=None):
     """generate x,y,z-data for contour plot.
@@ -161,26 +175,38 @@ def contour_data(fct, x_range, y_range=None):
             Z[i][j] = fct(np.asarray([X[i][j], Y[i][j]]))
     return X, Y, Z
 
+
 # ecdf_data
 def step_data(data, smooth_corners=0.1):
-
     """return x, y ECDF data for ECDF plot. Smoothing may look strange
     in a semilogx plot.
     """
     x = np.asarray(sorted(data))
     y = np.linspace(0, 1, len(x) + 1, endpoint=True)
     if smooth_corners:
-        x = np.array([x - smooth_corners * np.hstack([[0], np.diff(x)]),
-                      x, x, x + smooth_corners * np.hstack([np.diff(x), [0]])])
+        x = np.array(
+            [
+                x - smooth_corners * np.hstack([[0], np.diff(x)]),
+                x,
+                x,
+                x + smooth_corners * np.hstack([np.diff(x), [0]]),
+            ]
+        )
     else:
         x = np.array([x, x])
-    x = x.reshape(x.size, order='F')
+    x = x.reshape(x.size, order="F")
     if smooth_corners:
-        y = np.array([y[:-1], (1 - smooth_corners) * y[:-1] + smooth_corners * y[1:],
-                      smooth_corners * y[:-1] + (1 - smooth_corners) * y[1:], y[1:]])
+        y = np.array(
+            [
+                y[:-1],
+                (1 - smooth_corners) * y[:-1] + smooth_corners * y[1:],
+                smooth_corners * y[:-1] + (1 - smooth_corners) * y[1:],
+                y[1:],
+            ]
+        )
     else:
-            y = np.array([y[:-1], y[1:]])
-    y = y.reshape(y.size, order='F')
+        y = np.array([y[:-1], y[1:]])
+    y = y.reshape(y.size, order="F")
     # y = np.linspace(0, 1, len(x), endpoint=True)
     return x, y
 
@@ -256,7 +282,8 @@ class EvalParallel2(object):
     Comparing setting ``number_of_processes = 0`` with
     ``number_of_processes = 1`` evaluates the overhead introduced by
     ``multiprocessing.Pool.apply_async``.
-"""
+    """
+
     def __init__(self, fitness_function=None, number_of_processes=None):
         self.fitness_function = fitness_function
         self.processes = number_of_processes  # for the record
@@ -278,22 +305,25 @@ class EvalParallel2(object):
         """
         fitness_function = fitness_function or self.fitness_function
         if fitness_function is None:
-            raise ValueError("`fitness_function` was never given, must be"
-                             " passed in `__init__` or `__call__`")
+            raise ValueError(
+                "`fitness_function` was never given, must be"
+                " passed in `__init__` or `__call__`"
+            )
         if not self.pool:
             return [fitness_function(x, *args) for x in solutions]
-        warning_str = ("`fitness_function` must be a function, not a"
-                       " `lambda` or an instancemethod, in order to work with"
-                       " `multiprocessing` under Python 2")
-        if sys.version[0] == '2':
+        warning_str = (
+            "`fitness_function` must be a function, not a"
+            " `lambda` or an instancemethod, in order to work with"
+            " `multiprocessing` under Python 2"
+        )
+        if sys.version[0] == "2":
             if isinstance(fitness_function, type(self.__init__)):
                 warnings.warn(warning_str)
-        jobs = [self.pool.apply_async(fitness_function, (x,) + args)
-                for x in solutions]
+        jobs = [self.pool.apply_async(fitness_function, (x,) + args) for x in solutions]
         try:
             return [job.get(timeout) for job in jobs]
         except:
-            sys.version[0] == '2' and warnings.warn(warning_str)
+            sys.version[0] == "2" and warnings.warn(warning_str)
             raise
 
     def terminate(self):
@@ -316,11 +346,13 @@ class EvalParallel2(object):
         """though generally not recommended `__del__` should be OK here"""
         self.terminate()
 
+
 class BestSolution(object):
     """container to keep track of the best solution seen.
 
     Keeps also track of the genotype, if available.
     """
+
     def __init__(self, x=None, f=np.inf, evals=None):
         """initialize the best solution with ``x``, ``f``, and ``evals``.
 
@@ -336,6 +368,7 @@ class BestSolution(object):
         self.last = _BlancClass()
         self.last.x = x
         self.last.f = f
+
     def update(self, arx, xarchive=None, arf=None, evals=None):
         """checks for better solutions in list ``arx``.
 
@@ -370,7 +403,7 @@ class BestSolution(object):
         if minarf < np.inf and (minarf < self.f or self.f is None):
             self.x, self.f = arx[minidx], arf[minidx]
             if xarchive is not None and xarchive.get(self.x) is not None:
-                self.x_geno = xarchive[self.x].get('geno')
+                self.x_geno = xarchive[self.x].get("geno")
             else:
                 self.x_geno = None
             self.evals = None if not evals else evals - len(arf) + minidx + 1
@@ -379,12 +412,15 @@ class BestSolution(object):
             self.evalsall = evals
         self.last.x = arx[minidx]
         self.last.f = minarf
+
     def get(self):
-        """return ``(x, f, evals)`` """
+        """return ``(x, f, evals)``"""
         return self.x, self.f, self.evals  # , self.x_geno
+
 
 class BestSolution2(object):
     """minimal tracker of a smallest f-value with variable meta-info"""
+
     def __init__(self):
         self.f = np.inf
         self.x = None
@@ -393,22 +429,30 @@ class BestSolution2(object):
         self.count = 0
         "  number of overall compared values"
         self.previous = None
+
     def update(self, f, x=None, info=None, info_construct=None):
         """`info` may be a dictionary with everything we want to know,
         `info_construct` may be used to finalize versatile elements of
         `info`, like make a copy of an array within the info dictionary
         """
         self.count += 1
-        if self.count == 1 or (np.isfinite(f) and (not np.isfinite(self.f) or f < self.f)):
+        if self.count == 1 or (
+            np.isfinite(f) and (not np.isfinite(self.f) or f < self.f)
+        ):
             self.previous = dict(self.__dict__)
-            del self.previous['previous']  # otherwise we get a linked list of all previous entries
+            del self.previous[
+                "previous"
+            ]  # otherwise we get a linked list of all previous entries
             self.f = f
             self.x = x
             self.info = info_construct(info) if info_construct else info
             self.count_saved = self.count
         return self
+
     def __str__(self):
         return str(self.__dict__)
+
+
 class ExponentialSmoothing(object):
     """not in use (yet)
 
@@ -417,6 +461,7 @@ class ExponentialSmoothing(object):
     the weight ``1 / time_constant`` used for the new data.
 
     """
+
     def __init__(self, time_constant=None, normalizer=lambda x: x):
         self.time_constant = time_constant
         if self.time_constant is not None and self.time_constant < 1:
@@ -428,7 +473,7 @@ class ExponentialSmoothing(object):
     def _init_(self, v):
         self.values = np.array(v, dtype=float)
         if self.time_constant is None:
-            self.time_constant = 1 + len(v)**0.5
+            self.time_constant = 1 + len(v) ** 0.5
 
     def __getitem__(self, i):
         return self.values[i]
@@ -442,18 +487,22 @@ class ExponentialSmoothing(object):
         self.values += self.normalizer(1 / tc) * np.asarray(v)
         return self
 
+
 class EvolutionPath(ExponentialSmoothing):
     """not in use (yet)
 
     A variance-neutral exponentially smoothened vector.
     """
+
     def __init__(self, time_constant=None):
         super(EvolutionPath, self).__init__(
-            time_constant, lambda x: np.sqrt(x * (2 - x)))
+            time_constant, lambda x: np.sqrt(x * (2 - x))
+        )
 
     @property
     def path(self):
         return self.values
+
 
 class BinaryEvolutionPath(EvolutionPath):
 
@@ -474,8 +523,11 @@ class BinaryEvolutionPath(EvolutionPath):
                 greater_than_one += [(np.mean(p.path > 1) + np.mean(p.path < -1)) / 2]
 
         """
-        return np.minimum(0.25, 0.15865525393145707  # these come from the math for tc=1 and tc=infty
-                          + 0.2 / np.asarray(self.time_constant)**1.9)  # empirical fit to the data
+        return np.minimum(
+            0.25,
+            0.15865525393145707  # these come from the math for tc=1 and tc=infty
+            + 0.2 / np.asarray(self.time_constant) ** 1.9,
+        )  # empirical fit to the data
 
     @property
     def raw_binary_s(self):
@@ -492,22 +544,26 @@ class BinaryEvolutionPath(EvolutionPath):
         s[s > 0] /= odds_of_increment
         return s
 
+
 class OldEvolutionPath(object):
     """not in use (yet)
 
     A variance-neutral exponentially smoothened vector.
     """
+
     def __init__(self, p0, time_constant=None):
         self.path = np.asarray(p0)
         self.count = 0
         self.time_constant = time_constant
         if time_constant is None:
-            self.time_constant = 1 + len(p0)**0.5
+            self.time_constant = 1 + len(p0) ** 0.5
+
     def update(self, v):
         self.count += 1
-        c = max((1 / self.count, 1. / self.time_constant))
+        c = max((1 / self.count, 1.0 / self.time_constant))
         self.path *= 1 - c
-        self.path += (c * (2 - c))**0.5 * np.asarray(v)
+        self.path += (c * (2 - c)) ** 0.5 * np.asarray(v)
+
 
 class NoiseHandler(object):
     """Noise handling according to [Hansen et al 2009, A Method for
@@ -603,11 +659,19 @@ class NoiseHandler(object):
     :See also: `fmin`, `CMAEvolutionStrategy.ask_and_eval`
 
     """
+
     # TODO: for const additive noise a better version might be with alphasigma also used for sigma-increment,
     # while all other variance changing sources are removed (because they are intrinsically biased). Then
     # using kappa to get convergence (with unit sphere samples): noiseS=0 leads to a certain kappa increasing rate?
-    def __init__(self, N, maxevals=[1, 1, 1], aggregate=np.median,
-                 reevals=None, epsilon=1e-7, parallel=False):
+    def __init__(
+        self,
+        N,
+        maxevals=[1, 1, 1],
+        aggregate=np.median,
+        reevals=None,
+        epsilon=1e-7,
+        parallel=False,
+    ):
         """Parameters are:
 
         ``N``
@@ -641,36 +705,39 @@ class NoiseHandler(object):
         :See also: `fmin`, `CMAOptions`, `CMAEvolutionStrategy.ask_and_eval`
 
         """
-        self.lam_reeval = reevals  # 2 + popsize/20, see method indices(), originally 2 + popsize/10
+        self.lam_reeval = (
+            reevals  # 2 + popsize/20, see method indices(), originally 2 + popsize/10
+        )
         self.epsilon = epsilon
         self.parallel = parallel
         ## meta_parameters.noise_theta == 0.5
         self.theta = 0.5  # 0.5  # originally 0.2
         self.cum = 0.3  # originally 1, 0.3 allows one disagreement of current point with resulting noiseS
         ## meta_parameters.noise_alphasigma == 2.0
-        self.alphasigma = 1 + 2.0 / (N + 10) # 2, unit sphere sampling: 1 + 1 / (N + 10)
+        self.alphasigma = 1 + 2.0 / (
+            N + 10
+        )  # 2, unit sphere sampling: 1 + 1 / (N + 10)
         ## meta_parameters.noise_alphaevals == 2.0
         self.alphaevals = 1 + 2.0 / (N + 10)  # 2, originally 1.5
         ## meta_parameters.noise_alphaevalsdown_exponent == -0.25
-        self.alphaevalsdown = self.alphaevals** -0.25  # originally 1/1.5
+        self.alphaevalsdown = self.alphaevals**-0.25  # originally 1/1.5
         # zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz
-        if 11 < 3 and maxevals[2] > 1e18:  # for testing purpose
-            self.alphaevals = 1.5
-            self.alphaevalsdown = self.alphaevals**-0.999  # originally 1/1.5
 
         self.evaluations = 1
         """number of f-evaluations to get a single measurement by aggregation"""
         self.minevals = 1
         self.maxevals = int(np.max(maxevals))
-        if hasattr(maxevals, '__contains__'):  # i.e. can deal with ``in``
+        if hasattr(maxevals, "__contains__"):  # i.e. can deal with ``in``
             if len(maxevals) > 1:
                 self.minevals = min(maxevals)
                 self.evaluations = self.minevals
             if len(maxevals) > 2:
                 self.evaluations = np.median(maxevals)
         ## meta_parameters.noise_aggregate == None
-        self.f_aggregate = aggregate if not None else {1: np.median, 2: np.mean}[ None ]
-        self.evaluations_just_done = 0  # actually conducted evals, only for documentation
+        self.f_aggregate = aggregate if not None else {1: np.median, 2: np.mean}[None]
+        self.evaluations_just_done = (
+            0  # actually conducted evals, only for documentation
+        )
         self.noiseS = 0
 
     def __call__(self, X, fit, func, ask=None, args=()):
@@ -719,7 +786,9 @@ class NoiseHandler(object):
             self.evaluations = min((self.evaluations * self.alphaevals, self.maxevals))
             return self.alphasigma
         else:
-            self.evaluations = max((self.evaluations * self.alphaevalsdown, self.minevals))
+            self.evaluations = max(
+                (self.evaluations * self.alphaevalsdown, self.minevals)
+            )
             return 1.0  # / self.alphasigma
 
     def reeval(self, X, fit, func, ask, args=()):
@@ -743,8 +812,12 @@ class NoiseHandler(object):
                 if self.parallel:
                     self.fitre[i] = fagg(func(ask(evals, X_i, self.epsilon), *args))
                 else:
-                    self.fitre[i] = fagg([func(ask(1, X_i, self.epsilon)[0], *args)
-                                            for _k in range(evals)])
+                    self.fitre[i] = fagg(
+                        [
+                            func(ask(1, X_i, self.epsilon)[0], *args)
+                            for _k in range(evals)
+                        ]
+                    )
             else:
                 self.fitre[i] = fagg([func(X_i, *args) for _k in range(evals)])
         self.evaluations_just_done = evals * len(self.idx)
@@ -765,14 +838,25 @@ class NoiseHandler(object):
 
         # compute rank change limits using both ranks[0] and ranks[1]
         r = np.arange(1, 2 * lam)  # 2 * lam - 2 elements
-        limits = [0.5 * (Mh.prctile(np.abs(r - (ranks[0, i] + 1 - (ranks[0, i] > ranks[1, i]))),
-                                      self.theta * 50) +
-                         Mh.prctile(np.abs(r - (ranks[1, i] + 1 - (ranks[1, i] > ranks[0, i]))),
-                                      self.theta * 50))
-                    for i in self.idx]
+        limits = [
+            0.5
+            * (
+                Mh.prctile(
+                    np.abs(r - (ranks[0, i] + 1 - (ranks[0, i] > ranks[1, i]))),
+                    self.theta * 50,
+                )
+                + Mh.prctile(
+                    np.abs(r - (ranks[1, i] + 1 - (ranks[1, i] > ranks[0, i]))),
+                    self.theta * 50,
+                )
+            )
+            for i in self.idx
+        ]
         # compute measurement
         #                               max: 1 rankchange in 2*lambda is always fine
-        s = np.abs(rankDelta[self.idx]) - Mh.amax(limits, 1)  # lives roughly in 0..2*lambda
+        s = np.abs(rankDelta[self.idx]) - Mh.amax(
+            limits, 1
+        )  # lives roughly in 0..2*lambda
         self.noiseS += self.cum * (np.mean(s) - self.noiseS)
         return self.noiseS, s
 
@@ -785,8 +869,7 @@ class NoiseHandler(object):
 
         """
         ## meta_parameters.noise_reeval_multiplier == 1.0
-        lam_reev = 1.0 * (self.lam_reeval if self.lam_reeval
-                            else 2 + len(fit) / 20)
+        lam_reev = 1.0 * (self.lam_reeval if self.lam_reeval else 2 + len(fit) / 20)
         lam_reev = int(lam_reev) + ((lam_reev % 1) > np.random.rand())
         ## meta_parameters.noise_choose_reeval == 1
         choice = 1
@@ -794,8 +877,9 @@ class NoiseHandler(object):
             # take n_first first and reev - n_first best of the remaining
             n_first = lam_reev - lam_reev // 2
             sort_idx = np.argsort(np.asarray(fit)[n_first:]) + n_first
-            return np.asarray(list(range(0, n_first)) +
-                            list(sort_idx[0:lam_reev - n_first]))
+            return np.asarray(
+                list(range(0, n_first)) + list(sort_idx[0 : lam_reev - n_first])
+            )
         elif choice == 2:
             idx_sorted = np.argsort(np.asarray(fit))
             # take lam_reev equally spaced, starting with best
@@ -803,10 +887,10 @@ class NoiseHandler(object):
             return idx_sorted[[int(i) for i in linsp]]
         # take the ``lam_reeval`` best from the first ``2 * lam_reeval + 2`` values.
         elif choice == 3:
-            return np.argsort(np.asarray(fit)[:2 * (lam_reev + 1)])[:lam_reev]
+            return np.argsort(np.asarray(fit)[: 2 * (lam_reev + 1)])[:lam_reev]
         else:
-            raise ValueError('unrecognized choice value %d for noise reev'
-                             % choice)
+            raise ValueError("unrecognized choice value %d for noise reev" % choice)
+
 
 class Sections(object):
     """plot sections through an objective function.
@@ -853,8 +937,10 @@ class Sections(object):
     :See also: `__init__`
 
     """
-    def __init__(self, func, x, args=(), basis=None, name=None,
-                 plot_cmd=None, load=True):
+
+    def __init__(
+        self, func, x, args=(), basis=None, name=None, plot_cmd=None, load=True
+    ):
         """
         Parameters
         ----------
@@ -882,20 +968,24 @@ class Sections(object):
         self.func = func
         self.args = args
         self.x = x
-        self.name = name if name else str(func).replace(' ', '_').replace('>', '').replace('<', '')
+        self.name = (
+            name
+            if name
+            else str(func).replace(" ", "_").replace(">", "").replace("<", "")
+        )
         self.plot_cmd = plot_cmd  # or semilogy
         self.basis = np.eye(len(x)) if basis is None else basis
 
         try:
             load and self.load()
-            if any(self.res['x'] != x):
+            if any(self.res["x"] != x):
                 self.res = {}
-                self.res['x'] = x  # TODO: res['x'] does not look perfect
+                self.res["x"] = x  # TODO: res['x'] does not look perfect
             else:
-                print(self.name + ' loaded')
+                print(self.name + " loaded")
         except:
             self.res = {}
-            self.res['x'] = x
+            self.res["x"] = x
 
     def do(self, repetitions=1, locations=np.arange(-0.5, 0.6, 0.2), plot=True):
         """generates, plots and saves function values ``func(y)``,
@@ -925,7 +1015,9 @@ class Sections(object):
             # TODO: store res[i]['dx'] = self.basis[i] here?
             for dx in locations:
                 xx = self.x + dx * self.basis[i]
-                xkey = dx  # xx[i] if (self.basis == np.eye(len(self.basis))).all() else dx
+                xkey = (
+                    dx  # xx[i] if (self.basis == np.eye(len(self.basis))).all() else dx
+                )
                 if xkey not in res[i]:
                     res[i][xkey] = []
                 n = repetitions
@@ -940,9 +1032,10 @@ class Sections(object):
     def plot(self, plot_cmd=None, tf=lambda y: y):
         """plot the data we have, return ``self``"""
         from matplotlib import pyplot
+
         if not plot_cmd:
             plot_cmd = self.plot_cmd
-        colors = 'bgrcmyk'
+        colors = "bgrcmyk"
         pyplot.gcf().clear()
         res = self.res
 
@@ -951,14 +1044,16 @@ class Sections(object):
         for i in flatf:
             minf = min((minf, min(flatf[i])))
         addf = 1e-9 - minf if minf <= 1e-9 else 0
-        for i in sorted(k for k in res.keys() if isinstance(k, int)):  # we plot not all values here
+        for i in sorted(
+            k for k in res.keys() if isinstance(k, int)
+        ):  # we plot not all values here
             color = colors[i % len(colors)]
             arx = sorted(res[i].keys())
-            plot_cmd(arx, [tf(np.median(res[i][x]) + addf) for x in arx], color + '-')
+            plot_cmd(arx, [tf(np.median(res[i][x]) + addf) for x in arx], color + "-")
             pyplot.text(arx[-1], tf(np.median(res[i][arx[-1]])), i)
             if len(flatx[i]) < 11:
-                plot_cmd(flatx[i], tf(np.array(flatf[i]) + addf), color + 'o')
-        pyplot.ylabel('f + ' + str(addf))
+                plot_cmd(flatx[i], tf(np.array(flatf[i]) + addf), color + "o")
+        pyplot.ylabel("f + " + str(addf))
         pyplot.draw()
         pyplot.ion()
         pyplot.show()
@@ -985,17 +1080,19 @@ class Sections(object):
     def save(self, name=None):
         """save to file"""
         import pickle
+
         name = name if name else self.name
         fun = self.func
         del self.func  # instance method produces error
-        pickle.dump(self, open(name + '.pkl', "wb"))
+        pickle.dump(self, open(name + ".pkl", "wb"))
         self.func = fun
         return self
 
     def load(self, name=None):
         """load from file"""
         import pickle
+
         name = name if name else self.name
-        s = pickle.load(open(name + '.pkl', 'rb'))
+        s = pickle.load(open(name + ".pkl", "rb"))
         self.res = s.res  # disregard the class
         return self

@@ -7,20 +7,23 @@ All classes are supposed to follow the base class
 `interfaces`.
 """
 from __future__ import absolute_import, division, print_function
-import warnings  #, unicode_literals
+import warnings  # , unicode_literals
 from .utilities.python3for2 import range
 import numpy as np
 from .utilities.utils import rglen, print_warning
 from .utilities.math import Hessian as _Hessian
 from .interfaces import StatisticalModelSamplerWithZeroMeanBaseClass
-del absolute_import, division, print_function  #, unicode_literals
+
+del absolute_import, division, print_function  # , unicode_literals
 
 _assertions_quadratic = True
+
 
 class GaussSampler(StatisticalModelSamplerWithZeroMeanBaseClass):
     def __init__(self):
         """declarative init, doesn't need to be executed"""
         self.dimension = -1  # to prevent IDE error
+
     def set_H_by_f(self, f, x0, eps=None):
         """set Hessian from f at x0.
 
@@ -32,33 +35,43 @@ class GaussSampler(StatisticalModelSamplerWithZeroMeanBaseClass):
         is given by the `spectrum` property.
         """
         self.set_H(_Hessian(f, x0, eps))
+
     def set_H(self, H):
-        """set Hessian w.r.t. which to compute the eigen spectrum.
-        """
+        """set Hessian w.r.t. which to compute the eigen spectrum."""
         D, B = np.linalg.eigh(H)
         if any(D < 0):
-            warnings.warn("The Hessian has {0} negative eigenvalues:\n"
-                          "{1}\n"
-                          "Hence, no (new) Hessian is set as spectrum reference."
-                          "".format(sum(D < 0), D))
+            warnings.warn(
+                "The Hessian has {0} negative eigenvalues:\n"
+                "{1}\n"
+                "Hence, no (new) Hessian is set as spectrum reference."
+                "".format(sum(D < 0), D)
+            )
             return
         self._right = D**0.5 * B  # == B @ np.diag(D**-0.5)
         self._left = self._right.T  # == np.diag(D**-0.5) @ B.T
+
     @property
     def eigenspectrum(self):
         """return eigen spectrum w.r.t. H like sqrt(H) C sqrt(H)"""
-        if not hasattr(self, '_left'):
+        if not hasattr(self, "_left"):
             try:
                 return self.D**2
             except AttributeError:
                 pass
             return self.variances
-        return np.asarray(sorted(np.linalg.eigvalsh(np.dot(np.dot(
-            self._left, self.covariance_matrix), self._right))))
+        return np.asarray(
+            sorted(
+                np.linalg.eigvalsh(
+                    np.dot(np.dot(self._left, self.covariance_matrix), self._right)
+                )
+            )
+        )
+
     @property
     def corr_condition(self):
         """condition number of the correlation matrix"""
         return 1
+
     @property
     def chin(self):
         """approximation of the expected length when isotropic with variance 1.
@@ -70,14 +83,18 @@ class GaussSampler(StatisticalModelSamplerWithZeroMeanBaseClass):
 
         The approximation obeys ``chin < chin_hat < (1 + 5e-5) * chin``.
         """
-        values = {1: 0.7978845608028656, 2: 1.2533141373156,
-                  3: 1.59576912160574,   4: 1.87997120597326}
+        values = {
+            1: 0.7978845608028656,
+            2: 1.2533141373156,
+            3: 1.59576912160574,
+            4: 1.87997120597326,
+        }
         try:
             val = values[self.dimension]
         except KeyError:
             # for dim > 4 we have chin < chin_hat < (1 + 5e-5) * chin
             N = self.dimension
-            val = N**0.5 * (1 - 1. / (4 * N) + 1. / (26 * N**2)) # was: 21
+            val = N**0.5 * (1 - 1.0 / (4 * N) + 1.0 / (26 * N**2))  # was: 21
         return val
 
 
@@ -86,10 +103,8 @@ class GaussStandardConstant(GaussSampler):
 
     No update/change of distribution parameters.
     """
-    def __init__(self, dimension,
-                 randn=np.random.randn,
-                 quadratic=False,
-                 **kwargs):
+
+    def __init__(self, dimension, randn=np.random.randn, quadratic=False, **kwargs):
         try:
             self.dimension = len(dimension)
             self.standard_deviations = np.asarray(dimension)
@@ -100,7 +115,7 @@ class GaussStandardConstant(GaussSampler):
 
     @property
     def variances(self):
-        if not hasattr(self, 'standard_deviations'):
+        if not hasattr(self, "standard_deviations"):
             return np.ones(self.dimension)
         return self.standard_deviations**2
 
@@ -110,12 +125,14 @@ class GaussStandardConstant(GaussSampler):
             if same_length is True:
                 len_ = self.chin
             else:
-                len_ = same_length # presumably N**0.5, useful if self.opts['CSA_squared']
+                len_ = (
+                    same_length  # presumably N**0.5, useful if self.opts['CSA_squared']
+                )
             for i in rglen(arz):
-                ss = sum(arz[i]**2)
+                ss = sum(arz[i] ** 2)
                 if 1 < 3 or ss > self.dimension + 10.1:
                     arz[i] *= len_ / ss**0.5
-        if hasattr(self, 'standard_deviations'):
+        if hasattr(self, "standard_deviations"):
             arz *= self.standard_deviations
         return arz
 
@@ -124,17 +141,17 @@ class GaussStandardConstant(GaussSampler):
         pass
 
     def transform(self, x):
-        if hasattr(self, 'standard_deviations'):
+        if hasattr(self, "standard_deviations"):
             return self.standard_deviations * x
         return x
 
     def transform_inverse(self, x):
-        if hasattr(self, 'standard_deviations'):
+        if hasattr(self, "standard_deviations"):
             return x / self.standard_deviations
         return x
 
     def norm(self, x):
-        return np.sqrt(np.sum(self.transform_inverse(x)**2))
+        return np.sqrt(np.sum(self.transform_inverse(x) ** 2))
 
     def __imul__(self, factor):
         """variance multiplier"""
@@ -146,7 +163,7 @@ class GaussStandardConstant(GaussSampler):
 
     @property
     def condition_number(self):
-        if hasattr(self, 'standard_deviations'):
+        if hasattr(self, "standard_deviations"):
             return max(self.standard_deviations) / min(self.standard_deviations)
         return 1.0
 
@@ -215,13 +232,17 @@ class GaussFullSampler(GaussSampler):
        - rescale y according to the inverse update of sigma_vec (as
          if y is expressed in the new sigma_vec while C in the old)
        - update C with the "new" y.
-"""
-    def __init__(self, dimension,
-                 lazy_update_gap=0,
-                 constant_trace='',
-                 condition_limit=None,
-                 randn=np.random.randn,
-                 eigenmethod=np.linalg.eigh):
+    """
+
+    def __init__(
+        self,
+        dimension,
+        lazy_update_gap=0,
+        constant_trace="",
+        condition_limit=None,
+        randn=np.random.randn,
+        eigenmethod=np.linalg.eigh,
+    ):
         try:
             self.dimension = len(dimension)
             standard_deviations = np.asarray(dimension)
@@ -231,9 +252,10 @@ class GaussFullSampler(GaussSampler):
         assert len(standard_deviations) == self.dimension
 
         # prevent equal eigenvals, a hack for np.linalg:
-        self.C = np.diag(standard_deviations**2
-                    * np.exp((1e-4 / self.dimension) *
-                             np.arange(self.dimension)))
+        self.C = np.diag(
+            standard_deviations**2
+            * np.exp((1e-4 / self.dimension) * np.arange(self.dimension))
+        )
         "covariance matrix"
         self.lazy_update_gap = lazy_update_gap
         self.constant_trace = constant_trace
@@ -242,7 +264,7 @@ class GaussFullSampler(GaussSampler):
         self.eigenmethod = eigenmethod
         self.B = np.eye(self.dimension)
         "columns, B.T[i] == B[:, i], are eigenvectors of C"
-        self.D = np.diag(self.C)**0.5  # we assume that C is yet diagonal
+        self.D = np.diag(self.C) ** 0.5  # we assume that C is yet diagonal
         idx = self.D.argsort()
         self.D = self.D[idx]
         self.B = self.B[:, idx]
@@ -263,24 +285,29 @@ class GaussFullSampler(GaussSampler):
         """
         if standard_deviations is None:
             standard_deviations = np.ones(self.dimension)
-        self.__init__(standard_deviations,
-                      lazy_update_gap=self.lazy_update_gap,
-                      constant_trace=self.constant_trace,
-                      randn=self.randn,
-                      eigenmethod=self.eigenmethod)
+        self.__init__(
+            standard_deviations,
+            lazy_update_gap=self.lazy_update_gap,
+            constant_trace=self.constant_trace,
+            randn=self.randn,
+            eigenmethod=self.eigenmethod,
+        )
 
     @property
     def variances(self):
         return np.diag(self.C)
+
     @property
     def corr_condition(self):
         """condition number of the correlation matrix"""
         if self._corr_condition_count_eigen == self.count_eigen and (
-            self.count_eigen >= 1 or self.condition_number < 1.2):  # i.e. C_0 ≈ I
+            self.count_eigen >= 1 or self.condition_number < 1.2
+        ):  # i.e. C_0 ≈ I
             return self._corr_condition
         self._corr_condition_count_eigen = self.count_eigen
         self._corr_condition = np.linalg.cond(self.correlation_matrix)
         return self._corr_condition
+
     @property
     def beta_diagonal_acceleration(self):
         """beta from Algorithm 1 line 16 in https://direct.mit.edu/evco/article/28/3/405/94999/Diagonal-Acceleration-for-Covariance-Matrix"""
@@ -294,9 +321,11 @@ class GaussFullSampler(GaussSampler):
             if same_length is True:
                 len_ = self.chin
             else:
-                len_ = same_length # presumably N**0.5, useful if self.opts['CSA_squared']
+                len_ = (
+                    same_length  # presumably N**0.5, useful if self.opts['CSA_squared']
+                )
             for i in rglen(arz):
-                ss = sum(arz[i]**2)
+                ss = sum(arz[i] ** 2)
                 if 1 < 3 or ss > self.dimension + 10.1:
                     arz[i] *= len_ / ss**0.5
             # or to average
@@ -328,7 +357,7 @@ class GaussFullSampler(GaussSampler):
 
         """
         weights = np.array(weights, copy=True)
-        vectors = np.asarray(vectors) # row vectors
+        vectors = np.asarray(vectors)  # row vectors
         assert np.isfinite(vectors[0][0])
         assert len(weights) == len(vectors)
 
@@ -341,7 +370,7 @@ class GaussFullSampler(GaussSampler):
             # very short (hence divided by a small number)
             norm = self.norm(vectors[k])
             assert np.isfinite(norm)  # otherwise we later compute 0 * inf
-            weights[k] *= len(vectors[k]) / (norm + 1e-9)**2
+            weights[k] *= len(vectors[k]) / (norm + 1e-9) ** 2
             assert np.isfinite(weights[k])
 
         self.C += np.dot(weights * vectors.T, vectors)
@@ -360,20 +389,21 @@ class GaussFullSampler(GaussSampler):
         """
         if lazy_update_gap is None:
             lazy_update_gap = self.lazy_update_gap
-        if (self.count_tell < self.last_update + lazy_update_gap or
-            lazy_update_gap == self.count_tell - self.last_update == 0
-            ):
+        if (
+            self.count_tell < self.last_update + lazy_update_gap
+            or lazy_update_gap == self.count_tell - self.last_update == 0
+        ):
             return
         self._updateC()
         self._decompose_C()
         self.last_update = self.count_tell
 
-        if _assertions_quadratic and any(abs(sum(
-                self.B[:, 0:self.dimension - 1]
-                        * self.B[:, 1:], 0)) > 1e-6):
-            print('B is not orthogonal')
+        if _assertions_quadratic and any(
+            abs(sum(self.B[:, 0 : self.dimension - 1] * self.B[:, 1:], 0)) > 1e-6
+        ):
+            print("B is not orthogonal")
             print(self.D)
-            print(sum(self.B[:, 0:self.dimension - 1] * self.B[:, 1:], 0))
+            print(sum(self.B[:, 0 : self.dimension - 1] * self.B[:, 1:], 0))
         # is O(N^3)
         # assert(sum(abs(self.C - np.dot(self.D * self.B,  self.B.T))) < N**2*1e-11)
 
@@ -404,18 +434,20 @@ class GaussFullSampler(GaussSampler):
             if any(self.D <= 0):
                 raise ValueError(
                     "covariance matrix was not positive definite"
-                    " with a minimal eigenvalue of %e." % min(self.D))
+                    " with a minimal eigenvalue of %e." % min(self.D)
+                )
         except Exception as e:  # "as" is available since Python 2.6
             # raise RuntimeWarning(  # raise doesn't recover
             print_warning(
                 "covariance matrix eigen decomposition failed with \n"
-                + str(e) +
-                "\nConsider to reformulate the objective function")
+                + str(e)
+                + "\nConsider to reformulate the objective function"
+            )
             # try again with diag(C) = diag(C) + min(eigenvalues(C_old))
-            min_di2 = min(D_old)**2
+            min_di2 = min(D_old) ** 2
             for i in range(self.dimension):
                 self.C[i][i] += min_di2
-            self.D = (D_old**2 + min_di2)**0.5
+            self.D = (D_old**2 + min_di2) ** 0.5
             self._decompose_C()
         else:
             self.count_eigen += 1
@@ -427,21 +459,30 @@ class GaussFullSampler(GaussSampler):
             try:
                 if not self.constant_trace:
                     s = 1
-                elif self.constant_trace in (1, True) or self.constant_trace.startswith(('ar', 'mean')):
+                elif self.constant_trace in (1, True) or self.constant_trace.startswith(
+                    ("ar", "mean")
+                ):
                     s = 1 / np.mean(self.variances)
-                elif self.constant_trace.startswith(('geo')):
+                elif self.constant_trace.startswith(("geo")):
                     s = np.exp(-np.mean(np.log(self.variances)))
-                elif self.constant_trace.startswith('aeig'):
+                elif self.constant_trace.startswith("aeig"):
                     s = 1 / np.mean(self.D)  # same as arith
-                elif self.constant_trace.startswith('geig'):
+                elif self.constant_trace.startswith("geig"):
                     s = np.exp(-np.mean(np.log(self.D)))
                 else:
-                    print_warning("trace normalization option setting '%s' not recognized" %
-                                  repr(self.constant_trace),
-                                  class_name='GaussFullSampler', maxwarns=1, iteration=self.count_eigen)
+                    print_warning(
+                        "trace normalization option setting '%s' not recognized"
+                        % repr(self.constant_trace),
+                        class_name="GaussFullSampler",
+                        maxwarns=1,
+                        iteration=self.count_eigen,
+                    )
                     s = 1
             except AttributeError:
-                raise ValueError("Value '%s' not allowed for constant trace setting" % repr(self.constant_trace))
+                raise ValueError(
+                    "Value '%s' not allowed for constant trace setting"
+                    % repr(self.constant_trace)
+                )
             if s != 1:
                 self.C *= s
                 self.D *= s
@@ -450,10 +491,6 @@ class GaussFullSampler(GaussSampler):
             self._inverse_root_C = None
 
         # self.dC = np.diag(self.C)
-
-        if 11 < 3:  # not needed for now
-            self.inverse_root_C = np.dot(self.B / self.D, self.B.T)
-            self.inverse_root_C = (self.inverse_root_C + self.inverse_root_C.T) / 2
 
     def limit_condition(self, limit=None):
         """bound condition number to `limit` by adding eps to the trace.
@@ -476,15 +513,15 @@ class GaussFullSampler(GaussSampler):
         if limit is None:
             limit = self.condition_limit
         elif limit <= 1:
-            raise ValueError("condition limit was %f<=1 but should be >1"
-                             % limit)
+            raise ValueError("condition limit was %f<=1 but should be >1" % limit)
         if not np.isfinite(limit) or self.condition_number <= limit:
             return
 
-        eps = (self.D[-1]**2 - limit * self.D[0]**2) / (limit - 1)
+        eps = (self.D[-1] ** 2 - limit * self.D[0] ** 2) / (limit - 1)
         if eps <= 0:  # should never happen, because cond > limit
-            raise RuntimeWarning("cond=%e, limit=%e, eps=%e" %
-                (self.condition_number, limit, eps))
+            raise RuntimeWarning(
+                "cond=%e, limit=%e, eps=%e" % (self.condition_number, limit, eps)
+            )
             return
 
         for i in range(self.dimension):
@@ -564,32 +601,30 @@ class GaussFullSampler(GaussSampler):
 
     @property
     def correlation_matrix(self):
-        """return correlation matrix of the distribution.
-        """
+        """return correlation matrix of the distribution."""
         c = self.C.copy()
         for i in range(c.shape[0]):
-            fac = c[i, i]**0.5
+            fac = c[i, i] ** 0.5
             c[:, i] /= fac
             c[i, :] /= fac
         c = (c + c.T) / 2.0
         return c
 
     def to_correlation_matrix(self):
-        """"re-scale" C to a correlation matrix and return the scaling
-         factors as standard deviations.
+        """ "re-scale" C to a correlation matrix and return the scaling
+        factors as standard deviations.
 
-         See also: `to_linear_transformation`.
+        See also: `to_linear_transformation`.
         """
         self.update_now(0)
-        sigma_vec = np.diag(self.C)**0.5
+        sigma_vec = np.diag(self.C) ** 0.5
         self.C = self.correlation_matrix
         self._decompose_C()
         return sigma_vec
 
     def correlation(self, i, j):
-        """return correlation between variables i and j.
-        """
-        return self.C[i][j] / (self.C[i][i] * self.C[j][j])**0.5
+        """return correlation between variables i and j."""
+        return self.C[i][j] / (self.C[i][i] * self.C[j][j]) ** 0.5
 
     def transform(self, x):
         """apply linear transformation ``C**0.5`` to `x`."""
@@ -601,10 +636,14 @@ class GaussFullSampler(GaussSampler):
             if self._inverse_root_C is None:
                 # is O(N^3)
                 self._inverse_root_C = np.dot(self.B / self.D, self.B.T)
-                self._inverse_root_C = (self._inverse_root_C + self._inverse_root_C.T) / 2
+                self._inverse_root_C = (
+                    self._inverse_root_C + self._inverse_root_C.T
+                ) / 2
             return np.dot(self._inverse_root_C, x)
+
         def inv(x):
             return np.dot(self.B, np.dot(self.B.T, x) / self.D)
+
         # works only if x is a vector:
         # TODO: fixme without bailing!?
         xinverse = inv(x)
@@ -618,7 +657,7 @@ class GaussFullSampler(GaussSampler):
     @property
     def condition_number(self):
         assert (min(self.D), max(self.D)) == (self.D[0], self.D[-1])
-        return (self.D[-1] / self.D[0])**2
+        return (self.D[-1] / self.D[0]) ** 2
 
     def norm(self, x):
         """compute the Mahalanobis norm that is induced by the
@@ -639,16 +678,20 @@ class GaussFullSampler(GaussSampler):
         close to ``dim**0.5`` to the sample mean zero. In the example,
         `d` is the Euclidean distance, because C = I.
         """
-        return sum((np.dot(self.B.T, x) / self.D)**2)**0.5
+        return sum((np.dot(self.B.T, x) / self.D) ** 2) ** 0.5
 
     def inverse_hessian_scalar_correction(self, mean, sigma, f):
         # find points to evaluate
         fac = 10  # try to go beyond the true optimum such that
-                  # the mean inaccuracy becomes irrelevant
-        X = [mean - fac * sigma * self.D[0] * self.B[0], mean,
-             mean + fac * sigma * self.D[0] * self.B[0]]
+        # the mean inaccuracy becomes irrelevant
+        X = [
+            mean - fac * sigma * self.D[0] * self.B[0],
+            mean,
+            mean + fac * sigma * self.D[0] * self.B[0],
+        ]
         F = [f(x) for x in X]
         raise NotImplementedError
+
 
 class GaussDiagonalSampler(GaussSampler):
     """Multi-variate normal distribution with zero mean and diagonal
@@ -700,11 +743,15 @@ class GaussDiagonalSampler(GaussSampler):
          if y is expressed in the new sigma_vec while C in the old)
        - update C with the "new" y.
     """
-    def __init__(self, dimension,
-                 constant_trace='None',
-                 randn=np.random.randn,
-                 quadratic=False,
-                 **kwargs):
+
+    def __init__(
+        self,
+        dimension,
+        constant_trace="None",
+        randn=np.random.randn,
+        quadratic=False,
+        **kwargs
+    ):
         try:
             self.dimension = len(dimension)
             standard_deviations = np.asarray(dimension)
@@ -722,12 +769,13 @@ class GaussDiagonalSampler(GaussSampler):
         self.count_tell = 0
 
     def reset(self):
-        """reset distribution while keeping all other parameters
-        """
-        self.__init__(self.dimension,
-                      constant_trace=self.constant_trace,
-                      randn=self.randn,
-                      quadratic=self.quadratic)
+        """reset distribution while keeping all other parameters"""
+        self.__init__(
+            self.dimension,
+            constant_trace=self.constant_trace,
+            randn=self.randn,
+            quadratic=self.quadratic,
+        )
 
     @property
     def variances(self):
@@ -739,9 +787,11 @@ class GaussDiagonalSampler(GaussSampler):
             if same_length is True:
                 len_ = self.chin
             else:
-                len_ = same_length # presumably N**0.5, useful if self.opts['CSA_squared']
+                len_ = (
+                    same_length  # presumably N**0.5, useful if self.opts['CSA_squared']
+                )
             for i in rglen(arz):
-                ss = sum(arz[i]**2)
+                ss = sum(arz[i] ** 2)
                 if 1 < 3 or ss > self.dimension + 10.1:
                     arz[i] *= len_ / ss**0.5
             # or to average
@@ -764,7 +814,7 @@ class GaussDiagonalSampler(GaussSampler):
         The content of `vectors` with negative weights is changed.
         """
         weights = np.array(weights, copy=True)
-        vectors = np.asarray(vectors) # row vectors
+        vectors = np.asarray(vectors)  # row vectors
         assert np.isfinite(vectors[0][0])
         assert len(weights) == len(vectors)
 
@@ -777,7 +827,7 @@ class GaussDiagonalSampler(GaussSampler):
             # very short (hence divided by a small number)
             norm = self.norm(vectors[k])
             assert np.isfinite(norm)  # otherwise we later compute 0 * inf
-            weights[k] *= len(vectors[k]) / (norm + 1e-9)**2
+            weights[k] *= len(vectors[k]) / (norm + 1e-9) ** 2
             assert np.isfinite(weights[k])
 
         self.C += np.dot(weights, vectors**2)
@@ -836,23 +886,21 @@ class GaussDiagonalSampler(GaussSampler):
 
     @property
     def correlation_matrix(self):
-        """return correlation matrix of the distribution.
-        """
+        """return correlation matrix of the distribution."""
         return np.eye(self.dimension) if self.quadratic else None
 
     def to_correlation_matrix(self):
-        """"re-scale" C to a correlation matrix and return the scaling
-         factors as standard deviations.
+        """ "re-scale" C to a correlation matrix and return the scaling
+        factors as standard deviations.
 
-         See also: `to_linear_transformation`.
+        See also: `to_linear_transformation`.
         """
         sigma_vec = self.C**0.5
         self.C = np.ones(self.dimension)
         return sigma_vec
 
     def correlation(self, i, j):
-        """return correlation between variables i and j.
-        """
+        """return correlation between variables i and j."""
         return 0
 
     def transform(self, x):
@@ -886,4 +934,4 @@ class GaussDiagonalSampler(GaussSampler):
         close to ``dim**0.5`` to the sample mean zero. In the example,
         `d` is the Euclidean distance, because C = I.
         """
-        return sum(np.asarray(x)**2 / self.C)**0.5
+        return sum(np.asarray(x) ** 2 / self.C) ** 0.5

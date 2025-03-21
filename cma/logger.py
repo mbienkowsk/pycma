@@ -552,27 +552,7 @@ class CMADataLogger(interfaces.BaseDataLogger):
                             self._eigen_counter += matrix is self.last_precision_matrix  # hack to add only once per for loop
                         c = np.asarray(matrix)
                         c = c[np.triu_indices(c.shape[0], 1)]
-                        if 11 < 3:  # old version
-                            c_min = np.min(c)
-                            c_max = np.max(c)
-                            if np.min(abs(c)) == 0:
-                                c_medminus = 0  # thereby zero "is negative"
-                                c_medplus = 0  # thereby zero "is positive"
-                            else:
-                                cinv = 1 / c
-                                c_medminus = 1 / np.min(cinv)  # negative close to zero
-                                c_medplus = 1 / np.max(cinv)  # positive close to zero
-                            if c_max <= 0:  # no positive values
-                                c_max = c_medplus = 0  # set both "positive" values to zero
-                            elif c_min >=0:  # no negative values
-                                c_min = c_medminus = 0
                         c_min, c_medminus, c_medplus, c_max = _mathutils.Mh.prctile(c, [0, 25, 75, 100])
-                        if 11 < 3:  # log correlations instead of eigenvalues, messes up KL display
-                            _KL = 1e-3 - 0.5 * np.mean(np.log(self.last_correlation_spectrum[name]))  # doesn't work as expected
-                            cs = np.asarray(sorted(c))
-                            self.last_correlation_spectrum[name] = (1 + cs) / (1 - cs)
-                            # c_min, c_medminus, c_medplus, c_max = 4 * [(KL - 1) / (KL + 1)]  # something is wrong
-                            # c_min = (KL - 1) / (KL + 1)
                         with open(fn, 'a') as f:
                             f.write(str(iteration) + ' '
                                     + str(evals) + ' '
@@ -997,56 +977,30 @@ class CMADataLogger(interfaces.BaseDataLogger):
         self.fighandle = gcf()  # fighandle.number
         self.fighandle.clear()
 
-        if 11 < 3:
-            subplot(3, 2, 1)
-            self.plot_divers(iabscissa, foffset)
-            pyplot.xlabel('')
+        subplot(2, 3, 1)
+        self.plot_divers(iabscissa, foffset)
+        pyplot.xlabel('')
 
-            # Scaling
-            subplot(3, 2, 3)
-            self.plot_axes_scaling(iabscissa)
-            pyplot.xlabel('')
+        # standard deviations
+        subplot(2, 3, 4)
+        self.plot_stds(iabscissa, idx=x_opt)
 
-            # spectrum of correlation matrix
-            subplot(3, 2, 5)
-            self.plot_correlations(iabscissa)
+        # Scaling
+        subplot(2, 3, 2)
+        self.plot_axes_scaling(iabscissa)
+        pyplot.xlabel('')
 
-            # x-vectors
-            subplot(3, 2, 2)
-            self.plot_xrecent(iabscissa, x_opt)
-            pyplot.xlabel('')
-            subplot(3, 2, 4)
-            self.plot_mean(iabscissa, x_opt)
-            pyplot.xlabel('')
+        # spectrum of correlation matrix
+        subplot(2, 3, 5)
+        self.plot_correlations(iabscissa)
 
-            # standard deviations
-            subplot(3, 2, 6)
-            self.plot_stds(iabscissa, idx=x_opt)
-        else:
-            subplot(2, 3, 1)
-            self.plot_divers(iabscissa, foffset)
-            pyplot.xlabel('')
+        # x-vectors
+        subplot(2, 3, 3)
+        self.plot_xrecent(iabscissa, x_opt)
+        pyplot.xlabel('')
 
-            # standard deviations
-            subplot(2, 3, 4)
-            self.plot_stds(iabscissa, idx=x_opt)
-
-            # Scaling
-            subplot(2, 3, 2)
-            self.plot_axes_scaling(iabscissa)
-            pyplot.xlabel('')
-
-            # spectrum of correlation matrix
-            subplot(2, 3, 5)
-            self.plot_correlations(iabscissa)
-
-            # x-vectors
-            subplot(2, 3, 3)
-            self.plot_xrecent(iabscissa, x_opt)
-            pyplot.xlabel('')
-
-            subplot(2, 3, 6)
-            self.plot_mean(iabscissa, x_opt)
+        subplot(2, 3, 6)
+        self.plot_mean(iabscissa, x_opt)
 
         self._finalize_plotting()
         return self
@@ -1243,28 +1197,13 @@ class CMADataLogger(interfaces.BaseDataLogger):
 
         from matplotlib.pyplot import semilogy, text, axis, title, gca
         self._enter_plotting()
-        if 11 < 3:  # to be removed
-            semilogy(x[:], np.max(y, 1) / np.min(y, 1), '-r')
-            # text(x[-1], np.max(y[-1, :]) / np.min(y[-1, :]), 'axis ratio')
-            labels = ['axis ratio']
-        else:
-            semilogy(x[:], 1e-3 - 0.5 * np.mean(np.log(y), axis=1), '-r')
-            labels = [r'$10^{-3}$' + ' + KL(K || I) / D']  # mutual information / dimension
+        semilogy(x[:], 1e-3 - 0.5 * np.mean(np.log(y), axis=1), '-r')
+        labels = [r'$10^{-3}$' + ' + KL(K || I) / D']  # mutual information / dimension
         if ys is not None:
-            if 11 < 3:  # to be removed
-                semilogy(x, 1 + ys[:, 2], '-b')
-                text(x[-1], 1 + ys[-1, 2], '1 + min(corr)')
-                semilogy(x, 1 - ys[:, 5], '-b')
-                text(x[-1], 1 - ys[-1, 5], '1 - max(corr)')
-                semilogy(x[:], 1 + ys[:, 3], '-k')
-                text(x[-1], 1 + ys[-1, 3], '1 + max(neg corr)')
-                semilogy(x[:], 1 - ys[:, 4], '-k')
-                text(x[-1], 1 - ys[-1, 4], '1 - min(pos corr)')
-            else:
-                minmaxcorrs = ys[:, 2:6]  # 0, 25, 75, and 100 percentile correlation
-                semilogy(x, (1 + minmaxcorrs) / (1 - minmaxcorrs), 'c',
-                         linewidth=0.5)
-                labels += ['(1 + c) / (1 - c) of (0,25,75,100)-prctile']
+            minmaxcorrs = ys[:, 2:6]  # 0, 25, 75, and 100 percentile correlation
+            semilogy(x, (1 + minmaxcorrs) / (1 - minmaxcorrs), 'c',
+                     linewidth=0.5)
+            labels += ['(1 + c) / (1 - c) of (0,25,75,100)-prctile']
         pyplot.legend(labels, framealpha=0.3)
         # semilogy(x, y, '-c')
         color = iter(pyplot.get_cmap('plasma_r')(np.linspace(0.35, 1,
@@ -1410,20 +1349,6 @@ class CMADataLogger(interfaces.BaseDataLogger):
                 text(_x[-1], dfit[idx][-1],
                      label, fontsize=fontsize + 2)
 
-            elif 11 < 3 and any(idx):
-                semilogy(_x[idx], dfit[idx], '-c')
-                text(_x[-1], dfit[idx][-1],
-                     r'$f_\mathsf{best} - \min(f)$', fontsize=fontsize + 2)
-
-            if 11 < 3:  # delta-fitness as points
-                dfit = dat.f[1:, 5] - dat.f[:-1, 5]  # should be negative usually
-                semilogy(_x[1:],  # abs(fit(g) - fit(g-1))
-                    np.abs(dfit) + foffset, '.c')
-                i = dfit > 0
-                # print(np.sum(i) / float(len(dat.f[1:,iabscissa])))
-                semilogy(_x[1:][i],  # abs(fit(g) - fit(g-1))
-                    np.abs(dfit[i]) + foffset, '.r')
-            # postcondition: dfit, idx = dfit1, ...
 
         # fat red dot for overall minimum
         i = np.argmin(dat.f[:, 5])
@@ -2042,17 +1967,11 @@ class Logger(object):
             id = self._unique_name_addition(self._name)  # needs full path
             self._name = self._compose_name(self._name, id)
             self.name = self._compose_name(self.name, id)
-        # self.taken_names.append(self._name)
-        if 11 < 3 and os.path.isfile(self._name):
-            utils.print_message('Logger uses existing file "%s" '
-                                'which may be overwritten' % self._name)
-        # print(self._name)
         self.attributes = attributes or []
         self.callables = callables or []
         self.labels = labels or []
         self.count = 0
         self.current_data = []
-        # print('Logger:', self.name, self._name)
 
     @property
     def filename(self):
